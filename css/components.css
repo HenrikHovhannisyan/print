@@ -626,7 +626,7 @@
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    width: 200px;
+    width: 240px;
     background: var(--color-bg-panel);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -644,6 +644,14 @@
 
 .pe-dropdown__header {
     padding: 10px 12px;
+    overflow: hidden;
+}
+
+.pe-dropdown__header span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .pe-dropdown__item {
