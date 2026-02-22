@@ -1,0 +1,510 @@
+/* ============================================
+   PrintEditor — Layout
+   Основная разметка: тулбар, сайдбар, холст, панель
+   ============================================ */
+
+/* --- App Container --- */
+.pe-app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+
+/* --- Top Toolbar --- */
+.pe-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--toolbar-height);
+    padding: 0 16px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-bottom: var(--glass-border);
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.pe-toolbar__logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.pe-toolbar__logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--color-accent-gradient);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 16px;
+}
+
+.pe-toolbar__center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pe-toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+/* --- Main Content Area --- */
+.pe-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+
+/* --- Left Sidebar (Tools) --- */
+.pe-sidebar {
+    width: var(--sidebar-width);
+    background: var(--color-bg-panel);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+    z-index: 50;
+}
+
+
+/* --- Canvas Area (Center) --- */
+.pe-canvas-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 50% 40%, rgba(108, 92, 231, 0.04) 0%, transparent 60%),
+        var(--color-bg-primary);
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+}
+
+/* Декоративная сетка на фоне */
+.pe-canvas-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+}
+
+/* Светлая тема — инверсия сетки и фона рабочей области */
+[data-theme="light"] .pe-canvas-area {
+    background:
+        radial-gradient(circle at 50% 40%, rgba(108, 92, 231, 0.04) 0%, transparent 60%),
+        #e8e8f0 !important;
+}
+
+[data-theme="light"] .pe-canvas-area::before {
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px) !important;
+}
+
+[data-theme="light"] .pe-workspace__canvas-wrap {
+    border-color: rgba(108, 92, 231, 0.35) !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+
+/* --- Canvas Workspace (содержит одежду + canvas) --- */
+.pe-workspace {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Размеры подстраиваются динамически */
+}
+
+.pe-workspace__garment {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: filter var(--transition-normal);
+}
+
+.pe-workspace__garment img {
+    width: 500px;
+    height: auto;
+    pointer-events: none;
+    filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.3));
+    transition: filter var(--transition-normal);
+}
+
+/* Canvas поверх одежды — область печати */
+.pe-workspace__canvas-wrap {
+    position: absolute;
+    /* Позиция зависит от типа одежды — задаётся через JS */
+    border: 2px dashed rgba(108, 92, 231, 0.3);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    transition: border-color var(--transition-fast);
+}
+
+.pe-workspace__canvas-wrap:hover {
+    border-color: rgba(108, 92, 231, 0.6);
+}
+
+.pe-workspace__canvas-wrap canvas {
+    display: block;
+}
+
+
+/* --- Right Panel (Properties) --- */
+.pe-properties {
+    width: var(--properties-width);
+    background: var(--color-bg-panel);
+    border-left: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+    z-index: 50;
+}
+
+.pe-properties__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 20px;
+}
+
+.pe-properties__empty-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.4;
+}
+
+.pe-properties__empty-text {
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+
+/* --- Bottom Status Bar --- */
+.pe-statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 28px;
+    padding: 0 12px;
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+}
+
+.pe-statusbar__left,
+.pe-statusbar__right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pe-statusbar__item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+
+/* --- Zoom Controls --- */
+.pe-zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 2px;
+    border: 1px solid var(--color-border);
+}
+
+.pe-zoom-controls__value {
+    min-width: 44px;
+    text-align: center;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+
+/* --- Garment Selector (в сайдбаре) --- */
+.pe-garment-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.pe-garment-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    background: var(--color-bg-secondary);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.pe-garment-card:hover {
+    border-color: var(--color-border-hover);
+    background: var(--color-bg-hover);
+}
+
+.pe-garment-card--active {
+    border-color: var(--color-accent) !important;
+    background: var(--color-accent-light) !important;
+}
+
+.pe-garment-card img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+}
+
+.pe-garment-card span {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+
+/* --- Tools Grid (в сайдбаре) --- */
+.pe-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+}
+
+.pe-tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--color-text-secondary);
+    font-family: var(--font-family);
+}
+
+.pe-tool-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.pe-tool-btn--active {
+    background: var(--color-accent-light) !important;
+    border-color: var(--color-accent) !important;
+    color: var(--color-accent) !important;
+}
+
+.pe-tool-btn i {
+    font-size: 20px;
+}
+
+.pe-tool-btn span {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+
+/* --- Garment Color Overlay (отключён — колоризация через JS canvas) ---
+   Оверлей теперь не используется для цвета, вместо этого
+   перекрашивается само изображение в garment.js через offscreen canvas */
+.pe-workspace__garment-overlay {
+    display: none;
+}
+
+
+/* --- Responsive Breakpoints --- */
+@media (max-width: 1200px) {
+    :root {
+        --sidebar-width: 220px;
+        --properties-width: 240px;
+    }
+}
+
+@media (max-width: 900px) {
+    :root {
+        --sidebar-width: 60px;
+        --properties-width: 0px;
+    }
+
+    .pe-sidebar .pe-section__title,
+    .pe-sidebar .pe-label,
+    .pe-garment-card span,
+    .pe-tool-btn span {
+        display: none;
+    }
+
+    .pe-garment-selector {
+        grid-template-columns: 1fr;
+    }
+
+    .pe-tools-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pe-properties {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 100%;
+    }
+
+    /* Toolbar: scrollable */
+    .pe-toolbar {
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        padding-bottom: 2px;
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .pe-toolbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .pe-toolbar__logo span {
+        display: none;
+        /* Скрываем текст лого на мобильных */
+    }
+
+    /* Main Container: Column layout */
+    .pe-main {
+        flex-direction: column;
+    }
+
+    /* Sidebar: Horizontal scroll at top */
+    .pe-sidebar {
+        height: 130px;
+        flex-direction: row;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+        overflow-y: hidden;
+        overflow-x: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .pe-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .pe-sidebar .pe-section {
+        flex: 0 0 auto;
+        min-width: max-content;
+        border-bottom: none;
+        border-right: 1px solid var(--color-border);
+        padding-right: 16px;
+    }
+
+    /* Grid inside sidebar to Flex */
+    .pe-garment-selector {
+        display: flex;
+        gap: 8px;
+    }
+
+    .pe-tools-grid {
+        display: flex;
+        gap: 8px;
+    }
+
+    .pe-swatches {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    /* Right Panel (Properties): Bottom sheet format */
+    .pe-properties {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: auto;
+        max-height: 40vh;
+        border-left: none;
+        border-top: 1px solid var(--color-border);
+        background: var(--color-bg-panel);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+
+    /* Если свойства показаны (панель не пустая), выезжаем вверх */
+    .pe-properties.is-active {
+        transform: translateY(0);
+    }
+
+    .pe-properties.is-empty {
+        display: none !important;
+    }
+
+    /* Canvas area: take remaining space */
+    .pe-canvas-area {
+        height: calc(100vh - var(--toolbar-height) - 130px);
+        min-height: 200px;
+        align-items: flex-start;
+        /* сдвигаем холст выше */
+        padding-top: 20px;
+        overflow: hidden;
+    }
+
+    /* Resize garment image dynamically on small screens to avoid overflow */
+    .pe-workspace__garment img {
+        width: 100%;
+        max-width: 85vw;
+        height: auto;
+    }
+}

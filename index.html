@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="PrintEditor — онлайн-редактор принтов на одежду. Создавайте уникальные дизайны для футболок, худи и свитшотов.">
+    <title>PrintEditor — Редактор принтов на одежду</title>
+
+    <!-- Remix Icon (вместо emoji) -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+
+    <!-- Fabric.js — библиотека для работы с canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+    <!-- Стили проекта -->
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/canvas.css">
+</head>
+
+<body>
+
+    <div class="pe-app" id="app">
+
+        <!-- ===== TOP TOOLBAR ===== -->
+        <header class="pe-toolbar" id="toolbar">
+            <!-- Логотип -->
+            <div class="pe-toolbar__logo">
+                <div class="pe-toolbar__logo-icon">
+                    <i class="ri-t-shirt-line"></i>
+                </div>
+                <span class="text-gradient">PrintEditor</span>
+            </div>
+
+            <!-- Центральные контролы (undo/redo, zoom, theme) -->
+            <div class="pe-toolbar__center">
+                <button class="pe-btn pe-btn--icon" id="btn-undo" data-tooltip="Отменить (Ctrl+Z)" disabled>
+                    <i class="ri-arrow-go-back-line"></i>
+                </button>
+                <button class="pe-btn pe-btn--icon" id="btn-redo" data-tooltip="Повторить (Ctrl+Y)" disabled>
+                    <i class="ri-arrow-go-forward-line"></i>
+                </button>
+                <div class="pe-divider" style="width:1px; height:24px; margin:0 8px;"></div>
+                <div class="pe-zoom-controls">
+                    <button class="pe-btn pe-btn--icon pe-btn--sm" id="btn-zoom-out">
+                        <i class="ri-subtract-line"></i>
+                    </button>
+                    <span class="pe-zoom-controls__value" id="zoom-value">100%</span>
+                    <button class="pe-btn pe-btn--icon pe-btn--sm" id="btn-zoom-in">
+                        <i class="ri-add-line"></i>
+                    </button>
+                    <button class="pe-btn pe-btn--icon pe-btn--sm" id="btn-zoom-reset" data-tooltip="Сбросить масштаб">
+                        <i class="ri-focus-3-line"></i>
+                    </button>
+                </div>
+                <div class="pe-divider" style="width:1px; height:24px; margin:0 8px;"></div>
+                <button class="pe-btn pe-btn--icon" id="btn-theme-toggle" data-tooltip="Переключить тему">
+                    <i class="ri-sun-line" id="theme-icon"></i>
+                </button>
+            </div>
+
+            <!-- Правая часть -->
+            <div class="pe-toolbar__right">
+                <button class="pe-btn pe-btn--icon" id="btn-clear-canvas" data-tooltip="Очистить всё" disabled>
+                    <i class="ri-delete-bin-line"></i>
+                </button>
+                <button class="pe-btn" id="btn-export" title="Скачать как картинку">
+                    <i class="ri-download-2-line"></i>
+                    Экспорт
+                </button>
+                <button class="pe-btn pe-btn--primary" id="btn-save-design">
+                    <i class="ri-save-line"></i>
+                    Сохранить
+                </button>
+                <button class="pe-btn pe-btn--success" id="btn-add-cart">
+                    <i class="ri-add-circle-line"></i>
+                    В корзину
+                </button>
+
+                <div class="pe-divider" style="width:1px; height:24px; margin:0 8px;"></div>
+
+                <div class="pe-user-area" id="user-area-guest">
+                    <button class="pe-btn" id="btn-login-open">Войти</button>
+                    <button class="pe-btn pe-btn--primary" id="btn-register-open">Регистрация</button>
+                </div>
+
+                <div class="pe-user-area" id="user-area-logged" style="display:none;">
+                    <div class="pe-dropdown">
+                        <button class="pe-btn pe-btn--icon pe-dropdown__toggle" id="btn-user-dropdown">
+                            <i class="ri-user-3-line"></i>
+                        </button>
+                        <div class="pe-dropdown__menu">
+                            <div class="pe-dropdown__header">
+                                <span id="user-name-display"
+                                    style="font-weight:600; font-size:14px; display:block;">Пользователь</span>
+                                <span id="user-email-display"
+                                    style="font-size:12px; color:var(--color-text-secondary);">email@example.com</span>
+                            </div>
+                            <div class="pe-divider"></div>
+                            <button class="pe-dropdown__item" id="btn-my-orders">
+                                <i class="ri-file-list-3-line"></i> Мои заказы
+                            </button>
+                            <button class="pe-dropdown__item" id="btn-my-designs">
+                                <i class="ri-folder-user-line"></i> Мои дизайны
+                            </button>
+                            <button class="pe-dropdown__item" id="btn-view-cart">
+                                <i class="ri-shopping-cart-2-line"></i> Корзина
+                            </button>
+                            <div class="pe-divider"></div>
+                            <button class="pe-dropdown__item pe-dropdown__item--danger" id="btn-logout">
+                                <i class="ri-logout-box-r-line"></i> Выйти
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="pe-main">
+
+            <!-- === LEFT SIDEBAR === -->
+            <aside class="pe-sidebar" id="sidebar">
+
+                <!-- Выбор одежды -->
+                <div class="pe-section">
+                    <div class="pe-section__title">Тип одежды</div>
+                    <div class="pe-section__content">
+                        <div class="pe-garment-selector" id="garment-selector">
+                            <!-- Карточки одежды генерируются динамически из GARMENT_CONFIG -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Цвет одежды -->
+                <div class="pe-section">
+                    <div class="pe-section__title">Цвет одежды</div>
+                    <div class="pe-section__content">
+                        <div class="pe-swatches" id="garment-colors">
+                            <div class="pe-swatch pe-swatch--active" data-color="#ffffff" style="background:#ffffff;"
+                                data-tooltip="Белый"></div>
+                            <div class="pe-swatch" data-color="#111111" style="background:#111111;"
+                                data-tooltip="Чёрный"></div>
+                            <div class="pe-swatch" data-color="#1a1a2e" style="background:#1a1a2e;"
+                                data-tooltip="Тёмно-синий"></div>
+                            <div class="pe-swatch" data-color="#c0392b" style="background:#c0392b;"
+                                data-tooltip="Красный"></div>
+                            <div class="pe-swatch" data-color="#2980b9" style="background:#2980b9;"
+                                data-tooltip="Синий"></div>
+                            <div class="pe-swatch" data-color="#27ae60" style="background:#27ae60;"
+                                data-tooltip="Зелёный"></div>
+                            <div class="pe-swatch" data-color="#f39c12" style="background:#f39c12;"
+                                data-tooltip="Оранжевый"></div>
+                            <div class="pe-swatch" data-color="#8e44ad" style="background:#8e44ad;"
+                                data-tooltip="Фиолетовый"></div>
+                            <div class="pe-swatch" data-color="#e8d5b7" style="background:#e8d5b7;"
+                                data-tooltip="Бежевый"></div>
+                            <div class="pe-swatch" data-color="#7f8c8d" style="background:#7f8c8d;"
+                                data-tooltip="Серый"></div>
+                            <div class="pe-swatch" data-color="#e91e63" style="background:#e91e63;"
+                                data-tooltip="Розовый"></div>
+                            <div class="pe-swatch" data-color="#00bcd4" style="background:#00bcd4;"
+                                data-tooltip="Бирюзовый"></div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Инструменты -->
+                <div class="pe-section">
+                    <div class="pe-section__title">Инструменты</div>
+                    <div class="pe-section__content">
+                        <div class="pe-tools-grid" id="tools-grid">
+                            <button class="pe-tool-btn pe-tool-btn--active" data-tool="select">
+                                <i class="ri-cursor-line"></i>
+                                <span>Выбор</span>
+                            </button>
+                            <button class="pe-tool-btn" data-tool="text">
+                                <i class="ri-text"></i>
+                                <span>Текст</span>
+                            </button>
+                            <button class="pe-tool-btn" data-tool="brush">
+                                <i class="ri-brush-line"></i>
+                                <span>Кисть</span>
+                            </button>
+                            <button class="pe-tool-btn" data-tool="image">
+                                <i class="ri-image-add-line"></i>
+                                <span>Картинка</span>
+                            </button>
+                            <button class="pe-tool-btn" data-tool="rect">
+                                <i class="ri-checkbox-blank-line"></i>
+                                <span>Прямоуг.</span>
+                            </button>
+                            <button class="pe-tool-btn" data-tool="circle">
+                                <i class="ri-checkbox-blank-circle-line"></i>
+                                <span>Круг</span>
+                            </button>
+                            <button class="pe-tool-btn" data-tool="triangle">
+                                <i class="ri-triangle-line"></i>
+                                <span>Треуг.</span>
+                            </button>
+                            <button class="pe-tool-btn" data-tool="line">
+                                <i class="ri-subtract-line"></i>
+                                <span>Линия</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Настройки кисти (видны только при активном инструменте кисти) -->
+                <div class="pe-section" id="brush-settings" style="display:none;">
+                    <div class="pe-section__title">Настройки кисти</div>
+                    <div class="pe-section__content">
+                        <div class="pe-range-wrapper">
+                            <div class="pe-range-wrapper__header">
+                                <span class="pe-range-wrapper__label">Толщина</span>
+                                <span class="pe-range-wrapper__value" id="brush-size-value">5</span>
+                            </div>
+                            <input type="range" class="pe-range" id="brush-size" min="1" max="50" value="5">
+                        </div>
+                        <div class="pe-field pe-field--row">
+                            <span class="pe-label" style="margin-bottom:0;">Цвет</span>
+                            <div class="pe-color-picker">
+                                <input type="color" class="pe-color-picker__input" id="brush-color" value="#ffffff">
+                                <span class="pe-color-picker__label" id="brush-color-label">#FFFFFF</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Загрузка изображения -->
+                <div class="pe-section" id="image-upload-section" style="display:none;">
+                    <div class="pe-section__title">Загрузить изображение</div>
+                    <div class="pe-section__content">
+                        <div class="pe-dropzone" id="image-dropzone">
+                            <i class="ri-upload-cloud-line"></i>
+                            Перетащите сюда или нажмите
+                        </div>
+                        <input type="file" id="image-file-input" accept="image/*" style="display:none;">
+                    </div>
+                </div>
+
+            </aside>
+
+
+            <!-- === CANVAS AREA === -->
+            <main class="pe-canvas-area" id="canvas-area">
+                <div class="pe-workspace" id="workspace">
+                    <div class="pe-workspace__garment" id="garment-display">
+                        <img src="assets/garments/tshirt.png" alt="Футболка" id="garment-image">
+                        <div class="pe-workspace__garment-overlay" id="garment-overlay"></div>
+                    </div>
+                    <div class="pe-workspace__canvas-wrap" id="canvas-wrap">
+                        <canvas id="fabric-canvas"></canvas>
+                    </div>
+                </div>
+            </main>
+
+
+            <!-- === RIGHT PANEL (Properties) === -->
+            <aside class="pe-properties is-empty" id="properties-panel">
+                <div class="pe-properties__empty" id="properties-empty">
+                    <div class="pe-properties__empty-icon">
+                        <i class="ri-drag-move-line"></i>
+                    </div>
+                    <div class="pe-properties__empty-text">
+                        Выберите объект на холсте<br> для редактирования свойств
+                    </div>
+                </div>
+
+                <!-- Свойства объекта (заполняется через JS) -->
+                <div id="properties-content" style="display:none;">
+
+                    <!-- Позиция и размер -->
+                    <div class="pe-section">
+                        <div class="pe-section__title">Позиция и размер</div>
+                        <div class="pe-section__content">
+                            <div class="pe-field pe-field--row">
+                                <label class="pe-label" style="margin-bottom:0;">X</label>
+                                <input type="number" class="pe-input pe-input--sm" id="prop-left" step="1">
+                            </div>
+                            <div class="pe-field pe-field--row">
+                                <label class="pe-label" style="margin-bottom:0;">Y</label>
+                                <input type="number" class="pe-input pe-input--sm" id="prop-top" step="1">
+                            </div>
+                            <div class="pe-field pe-field--row">
+                                <label class="pe-label" style="margin-bottom:0;">W</label>
+                                <input type="number" class="pe-input pe-input--sm" id="prop-width" step="1" min="1">
+                            </div>
+                            <div class="pe-field pe-field--row">
+                                <label class="pe-label" style="margin-bottom:0;">H</label>
+                                <input type="number" class="pe-input pe-input--sm" id="prop-height" step="1" min="1">
+                            </div>
+                            <div class="pe-range-wrapper">
+                                <div class="pe-range-wrapper__header">
+                                    <span class="pe-range-wrapper__label">Поворот</span>
+                                    <span class="pe-range-wrapper__value" id="prop-angle-value">0°</span>
+                                </div>
+                                <input type="range" class="pe-range" id="prop-angle" min="0" max="360" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Цвет заливки -->
+                    <div class="pe-section" id="fill-section">
+                        <div class="pe-section__title">Заливка</div>
+                        <div class="pe-section__content">
+                            <div class="pe-field pe-field--row">
+                                <span class="pe-label" style="margin-bottom:0;">Цвет</span>
+                                <div class="pe-color-picker">
+                                    <input type="color" class="pe-color-picker__input" id="prop-fill" value="#ffffff">
+                                    <span class="pe-color-picker__label" id="prop-fill-label">#FFFFFF</span>
+                                </div>
+                            </div>
+                            <div class="pe-range-wrapper">
+                                <div class="pe-range-wrapper__header">
+                                    <span class="pe-range-wrapper__label">Прозрачность</span>
+                                    <span class="pe-range-wrapper__value" id="prop-opacity-value">100%</span>
+                                </div>
+                                <input type="range" class="pe-range" id="prop-opacity" min="0" max="100" value="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Обводка -->
+                    <div class="pe-section" id="stroke-section">
+                        <div class="pe-section__title">Обводка</div>
+                        <div class="pe-section__content">
+                            <div class="pe-field pe-field--row">
+                                <span class="pe-label" style="margin-bottom:0;">Цвет</span>
+                                <div class="pe-color-picker">
+                                    <input type="color" class="pe-color-picker__input" id="prop-stroke" value="#000000">
+                                    <span class="pe-color-picker__label" id="prop-stroke-label">#000000</span>
+                                </div>
+                            </div>
+                            <div class="pe-range-wrapper">
+                                <div class="pe-range-wrapper__header">
+                                    <span class="pe-range-wrapper__label">Толщина обводки</span>
+                                    <span class="pe-range-wrapper__value" id="prop-stroke-width-value">0</span>
+                                </div>
+                                <input type="range" class="pe-range" id="prop-stroke-width" min="0" max="20" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Свойства текста (видны только для текстовых объектов) -->
+                    <div class="pe-section" id="text-properties" style="display:none;">
+                        <div class="pe-section__title">Текст</div>
+                        <div class="pe-section__content">
+                            <div class="pe-field">
+                                <label class="pe-label">Содержание</label>
+                                <textarea class="pe-textarea" id="prop-text-content" rows="2"></textarea>
+                            </div>
+                            <div class="pe-field">
+                                <label class="pe-label">Шрифт</label>
+                                <div class="pe-select-wrapper">
+                                    <select class="pe-select" id="prop-font-family">
+                                        <option value="Inter">Inter</option>
+                                        <option value="Arial">Arial</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Courier New">Courier New</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Verdana">Verdana</option>
+                                        <option value="Impact">Impact</option>
+                                        <option value="Comic Sans MS">Comic Sans MS</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="pe-field pe-field--row">
+                                <label class="pe-label" style="margin-bottom:0;">Размер</label>
+                                <input type="number" class="pe-input pe-input--sm" id="prop-font-size" min="8" max="200"
+                                    value="24">
+                            </div>
+                            <div class="pe-btn-group">
+                                <button class="pe-btn pe-btn--icon pe-btn--sm" id="prop-bold" data-tooltip="Жирный">
+                                    <i class="ri-bold"></i>
+                                </button>
+                                <button class="pe-btn pe-btn--icon pe-btn--sm" id="prop-italic" data-tooltip="Курсив">
+                                    <i class="ri-italic"></i>
+                                </button>
+                                <button class="pe-btn pe-btn--icon pe-btn--sm" id="prop-underline"
+                                    data-tooltip="Подчёркнутый">
+                                    <i class="ri-underline"></i>
+                                </button>
+                            </div>
+                            <div class="pe-btn-group">
+                                <button class="pe-btn pe-btn--icon pe-btn--sm" id="prop-align-left"
+                                    data-tooltip="По левому краю">
+                                    <i class="ri-align-left"></i>
+                                </button>
+                                <button class="pe-btn pe-btn--icon pe-btn--sm pe-btn--active" id="prop-align-center"
+                                    data-tooltip="По центру">
+                                    <i class="ri-align-center"></i>
+                                </button>
+                                <button class="pe-btn pe-btn--icon pe-btn--sm" id="prop-align-right"
+                                    data-tooltip="По правому краю">
+                                    <i class="ri-align-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Действия с объектом -->
+                    <div class="pe-section">
+                        <div class="pe-section__title">Действия</div>
+                        <div class="pe-section__content">
+                            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                                <button class="pe-btn pe-btn--sm" id="prop-bring-front" data-tooltip="На передний план">
+                                    <i class="ri-bring-forward"></i> Вперёд
+                                </button>
+                                <button class="pe-btn pe-btn--sm" id="prop-send-back" data-tooltip="На задний план">
+                                    <i class="ri-send-backward"></i> Назад
+                                </button>
+                                <button class="pe-btn pe-btn--sm" id="prop-duplicate" data-tooltip="Дублировать">
+                                    <i class="ri-file-copy-line"></i> Копия
+                                </button>
+                                <button class="pe-btn pe-btn--sm pe-btn--danger" id="prop-delete"
+                                    data-tooltip="Удалить">
+                                    <i class="ri-delete-bin-line"></i> Удалить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </aside>
+
+        </div>
+
+
+        <!-- ===== STATUS BAR ===== -->
+        <footer class="pe-statusbar" id="statusbar">
+            <div class="pe-statusbar__left">
+                <span class="pe-statusbar__item" id="status-objects">
+                    <i class="ri-stack-line"></i> Объектов: 0
+                </span>
+                <span class="pe-statusbar__item" id="status-selection">
+                    <i class="ri-cursor-line"></i> Нет выделения
+                </span>
+            </div>
+            <div class="pe-statusbar__right">
+                <span class="pe-statusbar__item" id="status-canvas-size">
+                    <i class="ri-artboard-line"></i> 300 x 400
+                </span>
+                <span class="pe-statusbar__item" id="status-tool">
+                    <i class="ri-tools-line"></i> Выбор
+                </span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Модальное окно: Авторизация (Email) -->
+    <div class="pe-modal-overlay" id="modal-login" style="display:none;">
+        <div class="pe-modal" style="max-width:400px;">
+            <div class="pe-modal__header">
+                <h3 id="auth-modal-title">Авторизация</h3>
+                <button class="pe-modal__close"
+                    onclick="document.getElementById('modal-login').style.display='none'">&times;</button>
+            </div>
+            <div class="pe-modal__body">
+                <div id="auth-form-login">
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                        Введите ваш Email, чтобы войти в аккаунт.
+                    </p>
+                    <input type="email" id="login-email-input" class="pe-input" placeholder="Ваш email@example.com"
+                        style="width:100%; margin-bottom:16px;">
+                    <button class="pe-btn pe-btn--primary" id="btn-do-login"
+                        style="width:100%; display:flex; justify-content:center; margin-bottom:12px;">
+                        Войти
+                    </button>
+                    <p style="font-size:12px; text-align:center;">
+                        Нет аккаунта? <a href="#" id="link-show-register"
+                            style="color:var(--color-accent);">Зарегистрироваться</a>
+                    </p>
+                </div>
+
+                <div id="auth-form-register" style="display:none;">
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                        Создайте аккаунт, чтобы сохранять свои дизайны.
+                    </p>
+                    <input type="text" id="register-name-input" class="pe-input" placeholder="Ваше имя"
+                        style="width:100%; margin-bottom:12px;">
+                    <input type="email" id="register-email-input" class="pe-input" placeholder="Ваш email@example.com"
+                        style="width:100%; margin-bottom:16px;">
+                    <button class="pe-btn pe-btn--primary" id="btn-do-register"
+                        style="width:100%; display:flex; justify-content:center; margin-bottom:12px;">
+                        Создать аккаунт
+                    </button>
+                    <p style="font-size:12px; text-align:center;">
+                        Уже есть аккаунт? <a href="#" id="link-show-login" style="color:var(--color-accent);">Войти</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Мои дизайны -->
+    <div class="pe-modal-overlay" id="modal-designs" style="display:none;">
+        <div class="pe-modal" style="max-width:800px; width:90%;">
+            <div class="pe-modal__header">
+                <h3>Мои дизайны</h3>
+                <button class="pe-modal__close"
+                    onclick="document.getElementById('modal-designs').style.display='none'">&times;</button>
+            </div>
+            <div class="pe-modal__body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="designs-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+                    <!-- Динамический контент -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Мои заказы -->
+    <div class="pe-modal-overlay" id="modal-orders" style="display:none;">
+        <div class="pe-modal" style="max-width:800px; width:90%;">
+            <div class="pe-modal__header">
+                <h3>Мои заказы</h3>
+                <button class="pe-modal__close"
+                    onclick="document.getElementById('modal-orders').style.display='none'">&times;</button>
+            </div>
+            <div class="pe-modal__body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="orders-list" style="display:flex; flex-direction:column; gap:12px;">
+                    <!-- Динамический контент -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Выбор размера и количества -->
+    <div class="pe-modal-overlay" id="modal-add-options" style="display:none;">
+        <div class="pe-modal" style="max-width:400px;">
+            <div class="pe-modal__header">
+                <h3>Выберите параметры</h3>
+                <button class="pe-modal__close"
+                    onclick="document.getElementById('modal-add-options').style.display='none'">&times;</button>
+            </div>
+            <div class="pe-modal__body">
+                <div class="pe-field">
+                    <label class="pe-label">Размер</label>
+                    <div class="pe-select-wrapper">
+                        <select class="pe-select" id="add-size-select">
+                            <option value="XS">XS</option>
+                            <option value="S">S</option>
+                            <option value="M" selected>M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                            <option value="XXL">XXL</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pe-field">
+                    <label class="pe-label">Количество</label>
+                    <input type="number" class="pe-input" id="add-quantity-input" value="1" min="1" max="99"
+                        style="width:100%;">
+                </div>
+                <button class="pe-btn pe-btn--primary" id="btn-confirm-add-cart"
+                    style="width:100%; display:flex; justify-content:center; margin-top:16px;">
+                    Добавить в корзину
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Корзина -->
+    <div class="pe-modal-overlay" id="modal-cart" style="display:none;">
+        <div class="pe-modal" style="max-width:700px; width:90%;">
+            <div class="pe-modal__header">
+                <h3>Корзина</h3>
+                <button class="pe-modal__close"
+                    onclick="document.getElementById('modal-cart').style.display='none'">&times;</button>
+            </div>
+            <div class="pe-modal__body" id="cart-body" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Динамический контент -->
+            </div>
+            <div class="pe-modal__footer"
+                style="padding:16px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <button class="pe-btn pe-btn--danger pe-btn--sm" id="btn-clear-cart"
+                    style="display:none;">Очистить</button>
+                <button class="pe-btn pe-btn--success" id="btn-checkout">Оформить заказ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрытый инпут для загрузки файлов -->
+    <input type="file" id="global-file-input" accept="image/*" style="display:none;">
+
+    <!-- Контекстное меню -->
+    <div class="pe-context-menu" id="context-menu">
+        <button class="pe-context-menu__item" data-action="duplicate">
+            <i class="ri-file-copy-line"></i>
+            Дублировать
+            <span class="pe-context-menu__shortcut">Ctrl+D</span>
+        </button>
+        <button class="pe-context-menu__item" data-action="bring-front">
+            <i class="ri-bring-forward"></i>
+            На передний план
+        </button>
+        <button class="pe-context-menu__item" data-action="send-back">
+            <i class="ri-send-backward"></i>
+            На задний план
+        </button>
+        <div class="pe-context-menu__divider"></div>
+        <button class="pe-context-menu__item pe-context-menu__item--danger" data-action="delete">
+            <i class="ri-delete-bin-line"></i>
+            Удалить
+            <span class="pe-context-menu__shortcut">Del</span>
+        </button>
+    </div>
+
+    <!-- Тост-уведомление -->
+    <div class="pe-toast" id="toast"></div>
+
+    <!-- JS Modules -->
+    <script src="js/dialog.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/bg-remove.js"></script>
+    <script src="js/garment.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/tools.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>

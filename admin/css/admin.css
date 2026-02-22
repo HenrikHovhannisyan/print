@@ -1,0 +1,1068 @@
+/**
+ * PrintEditor — Admin Panel Styles
+ * 
+ * Тема оформления: тёмная, согласована с основным редактором.
+ * Переменные наследуются от основной темы.
+ */
+
+/* ============================================
+   CSS Variables (Admin-specific)
+   ============================================ */
+:root {
+    --admin-bg: #0f0f1a;
+    --admin-surface: #1a1a2e;
+    --admin-surface-hover: #252540;
+    --admin-border: rgba(255, 255, 255, 0.08);
+    --admin-text: #e4e4f0;
+    --admin-text-muted: #8888a0;
+    --admin-primary: #7c5ce0;
+    --admin-primary-hover: #6a4dd0;
+    --admin-success: #2ecc71;
+    --admin-warning: #f39c12;
+    --admin-danger: #e74c3c;
+    --admin-info: #3498db;
+    --admin-radius: 12px;
+    --admin-radius-sm: 8px;
+    --admin-transition: 0.2s ease;
+    --admin-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    --admin-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+
+/* ============================================
+   Reset & Base
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--admin-font);
+    background: var(--admin-bg);
+    color: var(--admin-text);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+
+/* ============================================
+   Login Screen
+   ============================================ */
+.pe-admin-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1030 50%, #0f0f1a 100%);
+}
+
+.pe-admin-login__card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    padding: 40px;
+    box-shadow: var(--admin-shadow);
+}
+
+.pe-admin-login__logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--admin-primary);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.pe-admin-login__card h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 28px;
+    color: var(--admin-text);
+}
+
+.pe-admin-login__error {
+    color: var(--admin-danger);
+    font-size: 13px;
+    min-height: 20px;
+    margin-bottom: 8px;
+}
+
+
+/* ============================================
+   Form Controls (shared)
+   ============================================ */
+.pe-admin-field {
+    margin-bottom: 18px;
+}
+
+.pe-admin-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pe-admin-field input:not([type="checkbox"]),
+.pe-admin-field textarea,
+.pe-admin-select {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text);
+    font-family: var(--admin-font);
+    font-size: 14px;
+    transition: border-color var(--admin-transition), box-shadow var(--admin-transition);
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Checkbox specific */
+.pe-admin-field input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    vertical-align: middle;
+    margin-right: 8px;
+    transition: all var(--admin-transition);
+}
+
+.pe-admin-field input[type="checkbox"]:checked {
+    background: var(--admin-primary);
+    border-color: var(--admin-primary);
+}
+
+.pe-admin-field input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+}
+
+.pe-admin-field label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    text-transform: none;
+    font-size: 14px;
+    color: var(--admin-text);
+}
+
+.pe-admin-field input:focus,
+.pe-admin-field textarea:focus,
+.pe-admin-select:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px rgba(124, 92, 224, 0.15);
+}
+
+.pe-admin-field input::placeholder {
+    color: var(--admin-text-muted);
+    opacity: 0.6;
+}
+
+.pe-admin-select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%238888a0'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+.pe-admin-select option {
+    background: var(--admin-surface);
+    color: var(--admin-text);
+}
+
+
+/* ============================================
+   Buttons
+   ============================================ */
+.pe-admin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 18px;
+    font-family: var(--admin-font);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    border-radius: var(--admin-radius-sm);
+    cursor: pointer;
+    transition: all var(--admin-transition);
+    outline: none;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.pe-admin-btn--primary {
+    background: var(--admin-primary);
+    color: #fff;
+    border-color: var(--admin-primary);
+}
+
+.pe-admin-btn--primary:hover {
+    background: var(--admin-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 92, 224, 0.3);
+}
+
+.pe-admin-btn--ghost {
+    background: transparent;
+    color: var(--admin-text-muted);
+    border-color: var(--admin-border);
+}
+
+.pe-admin-btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--admin-text);
+}
+
+.pe-admin-btn--sm {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.pe-admin-btn--danger {
+    background: transparent;
+    color: var(--admin-danger);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+.pe-admin-btn--danger:hover {
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.pe-admin-btn--success {
+    background: var(--admin-success);
+    color: #fff;
+}
+
+.pe-admin-btn--full {
+    width: 100%;
+}
+
+
+/* ============================================
+   Header
+   ============================================ */
+.pe-admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    background: var(--admin-surface);
+    border-bottom: 1px solid var(--admin-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.pe-admin-header__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--admin-primary);
+}
+
+.pe-admin-header__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.pe-admin-header__nav {
+    display: flex;
+    gap: 4px;
+}
+
+.pe-admin-nav-btn {
+    padding: 6px 16px;
+    font-family: var(--admin-font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--admin-radius-sm);
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.pe-admin-nav-btn:hover {
+    color: var(--admin-text);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.pe-admin-nav-btn--active {
+    color: var(--admin-primary) !important;
+    background: rgba(124, 92, 224, 0.12) !important;
+}
+
+.pe-admin-header__right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--admin-text-muted);
+}
+
+
+/* ============================================
+   Content
+   ============================================ */
+.pe-admin-content {
+    padding: 28px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.pe-admin-content h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.pe-admin-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    margin-top: 28px;
+    color: var(--admin-text-muted);
+}
+
+
+/* ============================================
+   Stats Cards
+   ============================================ */
+.pe-admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.pe-admin-stat-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    padding: 20px 24px;
+    transition: transform var(--admin-transition), box-shadow var(--admin-transition);
+}
+
+.pe-admin-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--admin-shadow);
+}
+
+.pe-admin-stat-card__value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--admin-primary) 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.pe-admin-stat-card--new .pe-admin-stat-card__value {
+    background: linear-gradient(135deg, var(--admin-info) 0%, #5dade2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.pe-admin-stat-card--processing .pe-admin-stat-card__value {
+    background: linear-gradient(135deg, var(--admin-warning) 0%, #f1c40f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.pe-admin-stat-card--done .pe-admin-stat-card__value {
+    background: linear-gradient(135deg, var(--admin-success) 0%, #27ae60 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.pe-admin-stat-card--designs .pe-admin-stat-card__value {
+    background: linear-gradient(135deg, #e74c3c 0%, #ff6b6b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.pe-admin-stat-card__label {
+    font-size: 13px;
+    color: var(--admin-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+
+/* ============================================
+   Table
+   ============================================ */
+.pe-admin-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--admin-surface);
+}
+
+.pe-admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.pe-admin-table thead {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.pe-admin-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--admin-text-muted);
+    border-bottom: 1px solid var(--admin-border);
+    white-space: nowrap;
+}
+
+.pe-admin-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    vertical-align: middle;
+}
+
+.pe-admin-table tbody tr {
+    transition: background var(--admin-transition);
+}
+
+.pe-admin-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.pe-admin-table__empty {
+    text-align: center !important;
+    color: var(--admin-text-muted) !important;
+    padding: 40px 16px !important;
+    font-style: italic;
+}
+
+
+/* ============================================
+   Status Badges
+   ============================================ */
+.pe-admin-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pe-admin-badge--new {
+    background: rgba(52, 152, 219, 0.15);
+    color: var(--admin-info);
+}
+
+.pe-admin-badge--confirmed {
+    background: rgba(155, 89, 182, 0.15);
+    color: #9b59b6;
+}
+
+.pe-admin-badge--processing,
+.pe-admin-badge--printing {
+    background: rgba(243, 156, 18, 0.15);
+    color: var(--admin-warning);
+}
+
+.pe-admin-badge--ready,
+.pe-admin-badge--shipped {
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--admin-success);
+}
+
+.pe-admin-badge--done {
+    background: rgba(46, 204, 113, 0.25);
+    color: var(--admin-success);
+}
+
+.pe-admin-badge--cancelled {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--admin-danger);
+}
+
+
+/* ============================================
+   Orders Header & Filters
+   ============================================ */
+.pe-admin-orders-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.pe-admin-orders-header h2 {
+    margin-bottom: 0;
+}
+
+.pe-admin-filters {
+    display: flex;
+    gap: 10px;
+}
+
+.pe-admin-filters .pe-admin-select {
+    width: auto;
+    min-width: 180px;
+}
+
+
+/* ============================================
+   Pagination
+   ============================================ */
+.pe-admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px 0;
+}
+
+.pe-admin-pagination button {
+    padding: 6px 12px;
+    font-family: var(--admin-font);
+    font-size: 13px;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text-muted);
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.pe-admin-pagination button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--admin-text);
+}
+
+.pe-admin-pagination button.active {
+    background: var(--admin-primary);
+    color: #fff;
+    border-color: var(--admin-primary);
+}
+
+
+/* ============================================ 
+   Modal
+   ============================================ */
+.pe-admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+.pe-admin-modal {
+    width: 100%;
+    max-width: 800px;
+    max-height: 85vh;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+.pe-admin-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.pe-admin-modal__header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--admin-text);
+}
+
+.pe-admin-modal__close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: transparent;
+    border: none;
+    color: var(--admin-text-muted);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all var(--admin-transition);
+}
+
+.pe-admin-modal__close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--admin-text);
+}
+
+.pe-admin-modal__body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Modal Order Details */
+.pe-admin-order-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.pe-admin-order-info__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pe-admin-order-info__label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--admin-text-muted);
+}
+
+.pe-admin-order-info__value {
+    font-size: 14px;
+    color: var(--admin-text);
+}
+
+/* Order Items Grid */
+.pe-admin-order-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.pe-admin-order-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    overflow: hidden;
+}
+
+.pe-admin-order-item__preview {
+    width: 100%;
+    height: 160px;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 12px;
+}
+
+.pe-admin-order-item__info {
+    padding: 12px;
+}
+
+.pe-admin-order-item__info p {
+    font-size: 12px;
+    margin-bottom: 4px;
+    color: var(--admin-text-muted);
+}
+
+.pe-admin-order-item__info p span {
+    color: var(--admin-text);
+    font-weight: 500;
+}
+
+.pe-admin-order-item__actions {
+    padding: 8px 12px;
+    border-top: 1px solid var(--admin-border);
+    display: flex;
+    gap: 6px;
+}
+
+/* Status editor in modal */
+.pe-admin-status-editor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid var(--admin-border);
+}
+
+.pe-admin-status-editor label {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.pe-admin-status-editor .pe-admin-select {
+    flex: 1;
+}
+
+/* Admin notes textarea */
+.pe-admin-notes-editor {
+    margin-top: 16px;
+}
+
+.pe-admin-notes-editor textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text);
+    font-family: var(--admin-font);
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--admin-transition);
+}
+
+.pe-admin-notes-editor textarea:focus {
+    border-color: var(--admin-primary);
+}
+
+
+/* ============================================
+   Garment Grid (cards)
+   ============================================ */
+.pe-admin-garment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.pe-admin-garment-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    overflow: hidden;
+    transition: transform var(--admin-transition), box-shadow var(--admin-transition);
+}
+
+.pe-admin-garment-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--admin-shadow);
+}
+
+.pe-admin-garment-card--inactive {
+    opacity: 0.5;
+}
+
+.pe-admin-garment-card__img-wrap {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.pe-admin-garment-card__img-wrap img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+}
+
+.pe-admin-garment-card__area-indicator {
+    position: absolute;
+    border: 2px dashed var(--admin-primary);
+    border-radius: 4px;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.pe-admin-garment-card__body {
+    padding: 14px 16px;
+    border-top: 1px solid var(--admin-border);
+}
+
+.pe-admin-garment-card__name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.pe-admin-garment-card__slug {
+    font-size: 12px;
+    color: var(--admin-text-muted);
+    font-family: monospace;
+    margin-bottom: 10px;
+}
+
+.pe-admin-garment-card__actions {
+    display: flex;
+    gap: 6px;
+}
+
+
+/* ============================================
+   Garment Editor Modal (wide)
+   ============================================ */
+.pe-admin-modal--wide {
+    max-width: 960px !important;
+}
+
+.pe-admin-garment-editor {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+}
+
+.pe-admin-garment-editor__form {
+    /* форма слева */
+}
+
+.pe-admin-garment-editor__preview {
+    /* превью справа */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Print Area coordinate inputs */
+.pe-admin-print-area-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.pe-admin-field-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pe-admin-field-inline label {
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: var(--admin-text-muted) !important;
+    margin-bottom: 0 !important;
+}
+
+.pe-admin-field-inline input {
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text);
+    font-family: var(--admin-font);
+    font-size: 13px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color var(--admin-transition);
+}
+
+.pe-admin-field-inline input:focus {
+    border-color: var(--admin-primary);
+}
+
+/* Garment Preview (visual print area editor) */
+.pe-admin-garment-preview-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    overflow: hidden;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pe-admin-garment-preview-wrap img#ge-preview-img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+}
+
+.pe-admin-garment-preview-area {
+    position: absolute;
+    border: 2px dashed var(--admin-primary);
+    background: rgba(124, 92, 224, 0.08);
+    border-radius: 4px;
+    cursor: move;
+    transition: none;
+}
+
+.pe-admin-garment-preview-area:hover {
+    background: rgba(124, 92, 224, 0.15);
+}
+
+.pe-admin-garment-preview-hint {
+    font-size: 12px;
+    color: var(--admin-text-muted);
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* File input styling */
+.pe-admin-field input[type="file"] {
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.pe-admin-field input[type="file"]::file-selector-button {
+    background: var(--admin-primary);
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-family: var(--admin-font);
+    font-size: 12px;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: background var(--admin-transition);
+}
+
+.pe-admin-field input[type="file"]::file-selector-button:hover {
+    background: var(--admin-primary-hover);
+}
+
+/* Checkbox styling */
+.pe-admin-field input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    vertical-align: middle;
+    accent-color: var(--admin-primary);
+}
+
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+
+/* ============================================
+   Responsive
+   ============================================ */
+.pe-admin-modal-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--admin-border);
+}
+
+.pe-admin-modal-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--admin-text);
+}
+
+.pe-admin-modal--lg {
+    max-width: 900px;
+}
+
+@media (max-width: 768px) {
+    .pe-admin-header {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 12px 16px;
+        gap: 8px;
+    }
+
+    .pe-admin-header__nav {
+        order: 3;
+        width: 100%;
+    }
+
+    .pe-admin-content {
+        padding: 16px;
+    }
+
+    .pe-admin-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pe-admin-orders-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .pe-admin-order-info {
+        grid-template-columns: 1fr;
+    }
+
+    .pe-admin-modal {
+        max-height: 95vh;
+    }
+}

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PrintEditor — Панель администратора. Управление заказами и дизайнами.">
+    <title>PrintEditor — Админ-панель</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+
+<body>
+
+    <!-- === LOGIN SCREEN === -->
+    <div class="pe-admin-login" id="login-screen">
+        <div class="pe-admin-login__card">
+            <div class="pe-admin-login__logo">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                </svg>
+                <span>PrintEditor</span>
+            </div>
+            <h1>Панель администратора</h1>
+            <form id="login-form">
+                <div class="pe-admin-field">
+                    <label for="login-username">Логин</label>
+                    <input type="text" id="login-username" name="username" placeholder="admin" autocomplete="username"
+                        required>
+                </div>
+                <div class="pe-admin-field">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" name="password" placeholder="Введите пароль"
+                        autocomplete="current-password" required>
+                </div>
+                <div class="pe-admin-login__error" id="login-error"></div>
+                <button type="submit" class="pe-admin-btn pe-admin-btn--primary pe-admin-btn--full">
+                    Войти
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- === MAIN DASHBOARD === -->
+    <div class="pe-admin-app" id="app-screen" style="display:none;">
+
+        <!-- Top Bar -->
+        <header class="pe-admin-header">
+            <div class="pe-admin-header__left">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                </svg>
+                <span class="pe-admin-header__title">PrintEditor Admin</span>
+            </div>
+            <nav class="pe-admin-header__nav">
+                <button class="pe-admin-nav-btn pe-admin-nav-btn--active" data-page="dashboard" id="nav-dashboard">
+                    Обзор
+                </button>
+                <button class="pe-admin-nav-btn" data-page="orders" id="nav-orders">
+                    Заказы
+                </button>
+                <button class="pe-admin-nav-btn" data-page="garments" id="nav-garments">
+                    Одежда
+                </button>
+                <button class="pe-admin-nav-btn" data-page="users" id="nav-users">
+                    Пользователи
+                </button>
+            </nav>
+            <div class="pe-admin-header__right">
+                <span id="admin-username"></span>
+                <button class="pe-admin-btn pe-admin-btn--ghost" id="btn-logout">Выйти</button>
+            </div>
+        </header>
+
+        <!-- Dashboard Page -->
+        <main class="pe-admin-content" id="page-dashboard">
+            <h2>Обзор</h2>
+            <div class="pe-admin-stats" id="stats-grid">
+                <div class="pe-admin-stat-card" id="stat-total">
+                    <div class="pe-admin-stat-card__value">—</div>
+                    <div class="pe-admin-stat-card__label">Всего заказов</div>
+                </div>
+                <div class="pe-admin-stat-card pe-admin-stat-card--new" id="stat-new">
+                    <div class="pe-admin-stat-card__value">—</div>
+                    <div class="pe-admin-stat-card__label">Новые</div>
+                </div>
+                <div class="pe-admin-stat-card pe-admin-stat-card--processing" id="stat-processing">
+                    <div class="pe-admin-stat-card__value">—</div>
+                    <div class="pe-admin-stat-card__label">В работе</div>
+                </div>
+                <div class="pe-admin-stat-card pe-admin-stat-card--done" id="stat-done">
+                    <div class="pe-admin-stat-card__value">—</div>
+                    <div class="pe-admin-stat-card__label">Завершено</div>
+                </div>
+                <div class="pe-admin-stat-card pe-admin-stat-card--designs" id="stat-designs">
+                    <div class="pe-admin-stat-card__value">—</div>
+                    <div class="pe-admin-stat-card__label">Дизайнов</div>
+                </div>
+            </div>
+
+            <h3>Последние заказы</h3>
+            <div class="pe-admin-table-wrap">
+                <table class="pe-admin-table" id="recent-orders-table">
+                    <thead>
+                        <tr>
+                            <th>Номер</th>
+                            <th>Клиент</th>
+                            <th>Телефон</th>
+                            <th>Статус</th>
+                            <th>Позиций</th>
+                            <th>Дата</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-orders-body">
+                        <tr>
+                            <td colspan="7" class="pe-admin-table__empty">Загрузка...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <!-- Orders Page -->
+        <main class="pe-admin-content" id="page-orders" style="display:none;">
+            <div class="pe-admin-orders-header">
+                <h2>Заказы</h2>
+                <div class="pe-admin-filters">
+                    <select id="filter-status" class="pe-admin-select">
+                        <option value="">Все статусы</option>
+                        <option value="new">Новые</option>
+                        <option value="confirmed">Подтверждённые</option>
+                        <option value="processing">В обработке</option>
+                        <option value="printing">Печать</option>
+                        <option value="ready">Готовые</option>
+                        <option value="shipped">Отправленные</option>
+                        <option value="done">Завершённые</option>
+                        <option value="cancelled">Отменённые</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pe-admin-table-wrap">
+                <table class="pe-admin-table" id="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Номер</th>
+                            <th>Клиент</th>
+                            <th>Email</th>
+                            <th>Телефон</th>
+                            <th>Статус</th>
+                            <th>Позиций</th>
+                            <th>Дата</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body">
+                        <tr>
+                            <td colspan="8" class="pe-admin-table__empty">Загрузка...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pe-admin-pagination" id="orders-pagination"></div>
+        </main>
+
+        <!-- Users Page -->
+        <main class="pe-admin-content" id="page-users" style="display:none;">
+            <div class="pe-admin-orders-header">
+                <h2>Пользователи</h2>
+            </div>
+            <div class="pe-admin-table-wrap">
+                <table class="pe-admin-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>Заказов (Всего/Активных)</th>
+                            <th>Дата регистрации</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-body">
+                        <tr>
+                            <td colspan="5" class="pe-admin-table__empty">Загрузка...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <!-- Garments Page -->
+        <main class="pe-admin-content" id="page-garments" style="display:none;">
+            <div class="pe-admin-orders-header">
+                <h2>Типы одежды</h2>
+                <button class="pe-admin-btn pe-admin-btn--primary" id="btn-add-garment">
+                    + Добавить тип
+                </button>
+            </div>
+
+            <div class="pe-admin-garment-grid" id="garments-grid">
+                <!-- Динамически заполняется -->
+            </div>
+        </main>
+
+        <!-- Order Detail Modal -->
+        <div class="pe-admin-modal-overlay" id="order-modal" style="display:none;">
+            <div class="pe-admin-modal">
+                <div class="pe-admin-modal__header">
+                    <h3 id="modal-order-title">Заказ</h3>
+                    <button class="pe-admin-modal__close" id="modal-close">&times;</button>
+                </div>
+                <div class="pe-admin-modal__body" id="modal-order-body">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Garment Edit Modal -->
+        <div class="pe-admin-modal-overlay" id="garment-modal" style="display:none;">
+            <div class="pe-admin-modal pe-admin-modal--wide">
+                <div class="pe-admin-modal__header">
+                    <h3 id="garment-modal-title">Тип одежды</h3>
+                    <button class="pe-admin-modal__close" id="garment-modal-close">&times;</button>
+                </div>
+                <div class="pe-admin-modal__body" id="garment-modal-body">
+                    <div class="pe-admin-garment-editor">
+                        <!-- Левая часть: форма -->
+                        <div class="pe-admin-garment-editor__form">
+                            <div class="pe-admin-field">
+                                <label for="ge-name">Название</label>
+                                <input type="text" id="ge-name" placeholder="Например: Футболка">
+                            </div>
+                            <div class="pe-admin-field">
+                                <label for="ge-slug">Slug (URL-код)</label>
+                                <input type="text" id="ge-slug" placeholder="tshirt">
+                            </div>
+                            <div class="pe-admin-field">
+                                <label for="ge-image">Изображение одежды</label>
+                                <input type="file" id="ge-image" accept="image/png,image/jpeg,image/webp">
+                                <input type="hidden" id="ge-image-path">
+                            </div>
+                            <div class="pe-admin-field">
+                                <label>Область печати (% от изображения)</label>
+                                <div class="pe-admin-print-area-inputs">
+                                    <div class="pe-admin-field-inline">
+                                        <label for="ge-pa-top">Top</label>
+                                        <input type="number" id="ge-pa-top" value="30" min="0" max="100" step="0.5">
+                                    </div>
+                                    <div class="pe-admin-field-inline">
+                                        <label for="ge-pa-left">Left</label>
+                                        <input type="number" id="ge-pa-left" value="35" min="0" max="100" step="0.5">
+                                    </div>
+                                    <div class="pe-admin-field-inline">
+                                        <label for="ge-pa-width">Width</label>
+                                        <input type="number" id="ge-pa-width" value="30" min="1" max="100" step="0.5">
+                                    </div>
+                                    <div class="pe-admin-field-inline">
+                                        <label for="ge-pa-height">Height</label>
+                                        <input type="number" id="ge-pa-height" value="30" min="1" max="100" step="0.5">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pe-admin-field">
+                                <label for="ge-sort">Порядок сортировки</label>
+                                <input type="number" id="ge-sort" value="0" min="0">
+                            </div>
+                            <div class="pe-admin-field">
+                                <label>
+                                    <input type="checkbox" id="ge-active" checked>
+                                    Активен (отображается в редакторе)
+                                </label>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-top:16px;">
+                                <button class="pe-admin-btn pe-admin-btn--primary" id="ge-save">
+                                    Сохранить
+                                </button>
+                                <button class="pe-admin-btn pe-admin-btn--ghost" id="ge-cancel">
+                                    Отмена
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Правая часть: визуальный превью -->
+                        <div class="pe-admin-garment-editor__preview">
+                            <div class="pe-admin-garment-preview-wrap" id="ge-preview-wrap">
+                                <img id="ge-preview-img" src="" alt="Preview">
+                                <div class="pe-admin-garment-preview-area" id="ge-preview-area"></div>
+                            </div>
+                            <p class="pe-admin-garment-preview-hint">
+                                Перетащите или измените значения для позиционирования области печати
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Detail Modal -->
+        <div class="pe-admin-modal-overlay" id="user-modal" style="display:none;">
+            <div class="pe-admin-modal pe-admin-modal--lg">
+                <div class="pe-admin-modal__header">
+                    <h3>Детали пользователя</h3>
+                    <button class="pe-admin-modal__close"
+                        onclick="document.getElementById('user-modal').style.display='none'">&times;</button>
+                </div>
+                <div class="pe-admin-modal__body">
+                    <div id="user-details-content">
+                        <!-- Динамический контент -->
+                    </div>
+                    <div class="pe-admin-modal-section">
+                        <h4>История заказов</h4>
+                        <div class="pe-admin-table-wrap">
+                            <table class="pe-admin-table" id="user-orders-table">
+                                <thead>
+                                    <tr>
+                                        <th>Номер</th>
+                                        <th>Статус</th>
+                                        <th>Сумма/Элементов</th>
+                                        <th>Дата</th>
+                                        <th>Действие</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-orders-body">
+                                    <!-- Заказы -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/js/dialog.js"></script>
+    <script src="/admin/js/admin.js"></script>
+</body>
+
+</html>

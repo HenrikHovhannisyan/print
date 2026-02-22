@@ -1,0 +1,234 @@
+/* ============================================
+   PrintEditor — Canvas Styles
+   Стили для Fabric.js canvas элементов
+   ============================================ */
+
+/* --- Fabric.js Control Overrides --- */
+.canvas-container {
+    /* Fabric.js создаёт свой контейнер */
+    border-radius: var(--radius-sm);
+}
+
+/* --- Контекстное меню на canvas --- */
+.pe-context-menu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 180px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: 6px;
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+    transition: all var(--transition-fast);
+    pointer-events: none;
+}
+
+.pe-context-menu--visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: all;
+}
+
+.pe-context-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+    background: none;
+    width: 100%;
+    font-family: var(--font-family);
+    text-align: left;
+}
+
+.pe-context-menu__item:hover {
+    background: var(--color-bg-hover);
+}
+
+.pe-context-menu__item--danger {
+    color: var(--color-danger);
+}
+
+.pe-context-menu__item--danger:hover {
+    background: rgba(255, 107, 107, 0.12);
+}
+
+.pe-context-menu__item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: var(--color-text-secondary);
+}
+
+.pe-context-menu__item--danger i {
+    color: var(--color-danger);
+}
+
+.pe-context-menu__divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 4px 0;
+}
+
+.pe-context-menu__shortcut {
+    margin-left: auto;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+
+/* --- Object Selection Visual Feedback --- */
+.pe-canvas-area--drawing {
+    cursor: crosshair !important;
+}
+
+.pe-canvas-area--drawing .canvas-container {
+    cursor: crosshair !important;
+}
+
+
+/* --- Animations --- */
+@keyframes pe-fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pe-scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pe-slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pe-slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pe-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.pe-sidebar {
+    animation: pe-slideInLeft 0.4s ease;
+}
+
+.pe-properties {
+    animation: pe-slideInRight 0.4s ease;
+}
+
+.pe-workspace {
+    animation: pe-scaleIn 0.5s ease;
+}
+
+
+/* --- Notification Toast --- */
+.pe-toast {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: 10px 24px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    z-index: 10000;
+    opacity: 0;
+    transition: all var(--transition-normal);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.pe-toast--visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.pe-toast--success {
+    border-color: rgba(0, 214, 143, 0.3);
+    color: var(--color-success);
+}
+
+.pe-toast--error {
+    border-color: rgba(255, 107, 107, 0.3);
+    color: var(--color-danger);
+}
+
+
+/* --- File Upload Drop Zone --- */
+.pe-dropzone {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.pe-dropzone:hover,
+.pe-dropzone--active {
+    border-color: var(--color-accent);
+    background: var(--color-accent-light);
+    color: var(--color-accent);
+}
+
+.pe-dropzone i {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+}

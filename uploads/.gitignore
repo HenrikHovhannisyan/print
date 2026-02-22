@@ -1,0 +1,23 @@
+# PrintEditor — Uploads & Data
+# Эти файлы создаются в рантайме и не должны быть в репозитории
+
+# SQLite база данных
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Загруженные файлы пользователей
+uploads/designs/*
+uploads/mockups/*
+uploads/highres/*
+uploads/originals/*
+uploads/exports/*
+
+# Но сохраняем .gitkeep
+!uploads/designs/.gitkeep
+!uploads/mockups/.gitkeep
+!uploads/highres/.gitkeep
+!uploads/originals/.gitkeep
+!uploads/exports/.gitkeep
+!data/.gitkeep
