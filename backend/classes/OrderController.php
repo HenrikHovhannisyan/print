@@ -374,8 +374,10 @@ class OrderController
 
         $order['items'] = $this->db->fetchAll(
             "SELECT *, 
-                    svg_data IS NOT NULL as has_svg, 
-                    canvas_json IS NOT NULL as has_canvas
+                    (svg_data IS NOT NULL AND svg_data != '') as has_svg, 
+                    (canvas_json IS NOT NULL AND canvas_json != '') as has_canvas,
+                    (svg_data_back IS NOT NULL AND svg_data_back != '') as has_svg_back,
+                    (canvas_json_back IS NOT NULL AND canvas_json_back != '') as has_canvas_back
              FROM order_items 
              WHERE order_id = ?",
         [$orderId]

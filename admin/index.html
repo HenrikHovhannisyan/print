@@ -113,13 +113,14 @@
                             <th>Телефон</th>
                             <th>Статус</th>
                             <th>Позиций</th>
+                            <th>Сумма</th>
                             <th>Дата</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody id="recent-orders-body">
                         <tr>
-                            <td colspan="7" class="pe-admin-table__empty">Загрузка...</td>
+                            <td colspan="8" class="pe-admin-table__empty">Загрузка...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -155,13 +156,14 @@
                             <th>Телефон</th>
                             <th>Статус</th>
                             <th>Позиций</th>
+                            <th>Сумма</th>
                             <th>Дата</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody id="orders-body">
                         <tr>
-                            <td colspan="8" class="pe-admin-table__empty">Загрузка...</td>
+                            <td colspan="9" class="pe-admin-table__empty">Загрузка...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -244,15 +246,22 @@
                                 </div>
                             </div>
 
-                            <div class="pe-admin-price-group">
+                            <div class="pe-admin-price-group"
+                                style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                                 <div class="pe-admin-field" style="margin-bottom:0">
-                                    <label for="ge-price-one">Цена (1 сторона), ֏</label>
-                                    <input type="number" id="ge-price-one" value="0" min="0">
+                                    <label for="ge-price-front">Цена Перед, ֏</label>
+                                    <input type="number" id="ge-price-front" value="1500" min="0">
                                 </div>
                                 <div class="pe-admin-field" style="margin-bottom:0">
-                                    <label for="ge-price-two">Цена (2 стороны), ֏</label>
-                                    <input type="number" id="ge-price-two" value="0" min="0">
+                                    <label for="ge-price-back">Цена Зад, ֏</label>
+                                    <input type="number" id="ge-price-back" value="1500" min="0">
                                 </div>
+                                <div class="pe-admin-field" style="margin-bottom:0">
+                                    <label for="ge-price-both">Цена Оба, ֏</label>
+                                    <input type="number" id="ge-price-both" value="2500" min="0">
+                                </div>
+                                <input type="hidden" id="ge-price-one" value="0">
+                                <input type="hidden" id="ge-price-two" value="0">
                             </div>
 
                             <div class="pe-admin-tabs">

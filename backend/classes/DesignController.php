@@ -55,6 +55,7 @@ class DesignController
         $previewData = $input['preview_data'] ?? null;
         $previewDataBack = $input['preview_data_back'] ?? null;
         $isDoubleSided = (int)($input['is_double_sided'] ?? 0);
+        $variant = $input['variant'] ?? ($isDoubleSided ? 'both' : 'front');
         $printArea = $input['print_area'] ?? null;
         $title = $input['title'] ?? '';
         $designId = $input['design_id'] ?? null;
@@ -94,6 +95,7 @@ class DesignController
                     'garment_type' => $garmentType,
                     'garment_color' => $garmentColor,
                     'is_double_sided' => $isDoubleSided,
+                    'variant' => $variant,
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
@@ -134,12 +136,12 @@ class DesignController
             else {
                 // Создание нового дизайна
                 $this->db->execute(
-                    "INSERT INTO designs (session_id, garment_type, garment_color, title, is_double_sided,
+                    "INSERT INTO designs (session_id, garment_type, garment_color, title, is_double_sided, variant,
                      canvas_json, canvas_json_back, svg_data, svg_data_back, 
                      preview_path, preview_back_path, highres_path, highres_back_path, print_area_json)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
-                    $sessionId, $garmentType, $garmentColor, $title, $isDoubleSided,
+                    $sessionId, $garmentType, $garmentColor, $title, $isDoubleSided, $variant,
                     $canvasJsonStr, $canvasJsonBackStr, $svgData, $svgDataBack,
                     $previewFile ? $previewFile['path'] : null,
                     $previewBackFile ? $previewBackFile['path'] : null,

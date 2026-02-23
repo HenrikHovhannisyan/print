@@ -389,6 +389,27 @@ const CanvasManager = (function () {
     }
 
     /**
+     * Загрузить состояние из JSON (возвращает Promise)
+     * @param {string|Object} json
+     */
+    function loadState(json) {
+        return new Promise((resolve) => {
+            if (!json) {
+                clearCanvas();
+                resolve();
+                return;
+            }
+            canvas.loadFromJSON(json, () => {
+                canvas.renderAll();
+                _updateObjectCount();
+                _onSelectionCleared();
+                _updateUndoRedoButtons();
+                resolve();
+            });
+        });
+    }
+
+    /**
      * Получить экземпляр Fabric canvas
      */
     function getCanvas() {
@@ -409,6 +430,7 @@ const CanvasManager = (function () {
         undo,
         redo,
         clearCanvas,
+        loadState,
         getCanvas,
         getSize,
         saveState: _saveState

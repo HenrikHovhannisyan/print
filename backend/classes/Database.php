@@ -165,6 +165,7 @@ class Database
                 highres_back_path TEXT,
                 print_area_json TEXT,
                 is_double_sided INTEGER DEFAULT 0,
+                variant TEXT DEFAULT 'front',
                 title TEXT DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -292,7 +293,10 @@ class Database
                 'print_area_back_width' => 'REAL DEFAULT 30',
                 'print_area_back_height' => 'REAL DEFAULT 30',
                 'price_one_side' => 'INTEGER DEFAULT 0',
-                'price_two_sides' => 'INTEGER DEFAULT 0'
+                'price_two_sides' => 'INTEGER DEFAULT 0',
+                'price_front' => 'INTEGER DEFAULT 1500',
+                'price_back' => 'INTEGER DEFAULT 1500',
+                'price_both' => 'INTEGER DEFAULT 2500'
             ];
 
             foreach ($newColumns as $col => $type) {
@@ -303,9 +307,24 @@ class Database
             // Установка дефолтных цен для существующих записей
             $this->pdo->exec("UPDATE garments SET price_one_side = 1500 WHERE price_one_side = 0 OR price_one_side IS NULL");
             $this->pdo->exec("UPDATE garments SET price_two_sides = 2500 WHERE price_two_sides = 0 OR price_two_sides IS NULL");
+            $this->pdo->exec("UPDATE garments SET price_front = 1500 WHERE price_front = 0 OR price_front IS NULL");
+            $this->pdo->exec("UPDATE garments SET price_back = 1500 WHERE price_back = 0 OR price_back IS NULL");
+            $this->pdo->exec("UPDATE garments SET price_both = 2500 WHERE price_both = 0 OR price_both IS NULL");
         }
         catch (Exception $e) {
-        // Игнорируем ошибки миграции
+        }
+
+        // Миграция designs
+        try {
+            $cols = $this->fetchAll("PRAGMA table_info(designs)");
+            $names = array_map(function ($c) {
+                return $c['name']; }, $cols);
+            if (!in_array('variant', $names)) {
+                $this->pdo->exec("ALTER TABLE designs ADD COLUMN variant TEXT DEFAULT 'front'");
+                $this->pdo->exec("UPDATE designs SET variant = 'both' WHERE is_double_sided = 1");
+            }
+        }
+        catch (Exception $e) {
         }
 
         // Создаём администратора по умолчанию, если нет ни одного

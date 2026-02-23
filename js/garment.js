@@ -187,10 +187,18 @@ const GarmentManager = (function () {
     /**
      * Установка типа одежды
      * @param {string} type — ключ из GARMENT_CONFIG
+     * @param {boolean} skipModal — пропустить выбор варианта (для загрузки сохранённого)
      */
-    function setGarment(type) {
+    function setGarment(type, skipModal = false) {
         if (!GARMENT_CONFIG[type]) return;
         pendingGarment = type;
+
+        if (skipModal) return;
+
+        // Если уже выбрана эта одежда и режим "обе стороны", не спрашиваем повторно
+        if (currentGarment === type && currentVariant === 'both') {
+            return;
+        }
 
         // Показываем модальное окно выбора стороны
         const modal = document.getElementById('side-selection-modal');
@@ -198,12 +206,13 @@ const GarmentManager = (function () {
             modal.style.display = 'flex';
 
             const config = GARMENT_CONFIG[type];
-            const p1 = config.price ? config.price.oneSide : 1500;
-            const p2 = config.price ? config.price.twoSides : 2500;
+            const pFront = config.price ? config.price.front : 1500;
+            const pBack = config.price ? config.price.back : 1500;
+            const pBoth = config.price ? config.price.both : 2500;
 
-            document.getElementById('variant-price-front').textContent = p1 + ' ֏';
-            document.getElementById('variant-price-back').textContent = p1 + ' ֏';
-            document.getElementById('variant-price-both').textContent = (p1 + p2) + ' ֏';
+            document.getElementById('variant-price-front').textContent = pFront + ' ֏';
+            document.getElementById('variant-price-back').textContent = pBack + ' ֏';
+            document.getElementById('variant-price-both').textContent = pBoth + ' ֏';
 
             // Проверяем наличие задней стороны для скрытия опций
             const hasBack = !!config.imageBack;
@@ -309,6 +318,9 @@ const GarmentManager = (function () {
         }
 
         // Обновляем статус
+        if (typeof App !== 'undefined' && App.updatePrice) {
+            App.updatePrice();
+        }
         if (typeof App !== 'undefined' && App.updateStatus) {
             App.updateStatus();
         }
@@ -523,12 +535,13 @@ const GarmentManager = (function () {
      * Получить обработанное (без фона) изображение текущей одежды как Image
      * @returns {Promise<HTMLImageElement>}
      */
-    function getProcessedGarmentImage() {
+    function getProcessedGarmentImage(side = null) {
         return new Promise((resolve, reject) => {
             const config = GARMENT_CONFIG[currentGarment];
             if (!config) return reject('No garment config');
 
-            const sideImg = (currentSide === 'back' && config.imageBack) ? config.imageBack : config.image;
+            const targetSide = side || currentSide;
+            const sideImg = (targetSide === 'back' && config.imageBack) ? config.imageBack : config.image;
             const cached = BgRemover.getCached(sideImg);
             const src = cached || sideImg;
 

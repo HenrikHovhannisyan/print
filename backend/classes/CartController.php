@@ -56,19 +56,25 @@ class CartController
 
         // Получаем актуальную цену из таблицы garments
         $designData = $this->db->fetchOne(
-            "SELECT d.garment_type, d.is_double_sided FROM designs d WHERE d.id = ?",
+            "SELECT d.garment_type, d.is_double_sided, d.variant FROM designs d WHERE d.id = ?",
         [$designId]
         );
 
         $garment = $this->db->fetchOne(
-            "SELECT price_one_side, price_two_sides FROM garments WHERE slug = ?",
+            "SELECT price_front, price_back, price_both FROM garments WHERE slug = ?",
         [$designData['garment_type']]
         );
 
-        $price_one = $garment['price_one_side'] ?? 1500;
-        $price_extra = $garment['price_two_sides'] ?? 1000;
-
-        $price = $designData['is_double_sided'] ? ($price_one + $price_extra) : $price_one;
+        $v = $designData['variant'] ?? 'front';
+        if ($v === 'both') {
+            $price = $garment['price_both'] ?? 2500;
+        }
+        else if ($v === 'back') {
+            $price = $garment['price_back'] ?? 1500;
+        }
+        else {
+            $price = $garment['price_front'] ?? 1500;
+        }
 
         if ($existing) {
             $newQty = $existing['quantity'] + $quantity;

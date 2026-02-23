@@ -37,8 +37,9 @@ const ExportManager = (function () {
     /**
      * Генерация dataURL мокапа (одежда + дизайн)
      * Возвращает Promise resolving to string (DataURL)
+     * @param {string} side — сторона ('front' или 'back'), если не указана — берется текущая
      */
-    function generateMockupDataURL() {
+    function generateMockupDataURL(side = null) {
         return new Promise((resolve, reject) => {
             const canvas = CanvasManager.getCanvas();
             if (!canvas) return reject('No canvas');
@@ -46,12 +47,13 @@ const ExportManager = (function () {
             canvas.discardActiveObject();
             canvas.renderAll();
 
+            const targetSide = side || GarmentManager.getConfig().side;
             const config = GarmentManager.getConfig();
             const garmentConfig = config.config;
 
-            GarmentManager.getProcessedGarmentImage()
+            GarmentManager.getProcessedGarmentImage(targetSide)
                 .then(garmentImg => {
-                    _composeAndExport(garmentImg, canvas, config, garmentConfig, resolve);
+                    _composeAndExport(garmentImg, canvas, config, garmentConfig, resolve, targetSide);
                 })
                 .catch(reject);
         });
@@ -60,7 +62,7 @@ const ExportManager = (function () {
     /**
      * Компоновка
      */
-    function _composeAndExport(garmentImg, fabricCanvas, config, garmentConfig, resolve) {
+    function _composeAndExport(garmentImg, fabricCanvas, config, garmentConfig, resolve, side) {
         // Создаём offscreen canvas для сборки
         const exportCanvas = document.createElement('canvas');
         const ctx = exportCanvas.getContext('2d');
@@ -94,7 +96,8 @@ const ExportManager = (function () {
         }
 
         // --- Шаг 4: Размещаем принт в области печати ---
-        const pa = garmentConfig.printArea;
+        // Используем нужную область печати в зависимости от стороны
+        const pa = (side === 'back') ? (garmentConfig.printAreaBack || garmentConfig.printArea) : garmentConfig.printArea;
         const printX = (pa.left / 100) * natW;
         const printY = (pa.top / 100) * natH;
         const printW = (pa.width / 100) * natW;

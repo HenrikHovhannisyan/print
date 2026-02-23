@@ -243,6 +243,85 @@ const App = (function () {
     }
 
     /**
+     * Собирает все данные дизайна для сохранения (включая вторую сторону при необходимости)
+     */
+    async function _collectDesignData() {
+        const canvas = CanvasManager.getCanvas();
+        const config = GarmentManager.getConfig();
+        const originalSide = config.side;
+
+        // Сохраняем текущую сторону
+        sideStates[originalSide] = JSON.stringify(canvas.toJSON());
+
+        let data = {
+            garmentType: config.garment,
+            garmentColor: config.color,
+            canvasJson: sideStates.front,
+            canvasJsonBack: sideStates.back,
+            isDoubleSided: (config.variant === 'both'),
+            variant: config.variant,
+            printArea: {
+                front: config.config.printArea,
+                back: config.config.printAreaBack || config.config.printArea
+            },
+            previewDataUrl: null,
+            previewDataUrlBack: null,
+            highresDataUrl: null,
+            highresDataUrlBack: null
+        };
+
+        try {
+            // Helper to collect assets for a specific side
+            const collectAssets = async (side) => {
+                await CanvasManager.loadState(sideStates[side]);
+                const mockup = await ExportManager.generateMockupDataURL(side);
+                const highres = canvas.toDataURL({ format: 'png', multiplier: 4 });
+                const svg = canvas.toSVG();
+                return { mockup, highres, svg };
+            };
+
+            // 1. Collect current side
+            const s1 = await collectAssets(originalSide);
+            if (originalSide === 'front') {
+                data.previewDataUrl = s1.mockup;
+                data.highresDataUrl = s1.highres;
+                data.svgData = s1.svg;
+            } else {
+                data.previewDataUrlBack = s1.mockup;
+                data.highresDataUrlBack = s1.highres;
+                data.svgDataBack = s1.svg;
+            }
+
+            // 2. If double sided, collect other side
+            if (config.variant === 'both') {
+                const otherSide = (originalSide === 'front' ? 'back' : 'front');
+                const s2 = await collectAssets(otherSide);
+
+                if (otherSide === 'front') {
+                    data.previewDataUrl = s2.mockup;
+                    data.highresDataUrl = s2.highres;
+                    data.svgData = s2.svg;
+                } else {
+                    data.previewDataUrlBack = s2.mockup;
+                    data.highresDataUrlBack = s2.highres;
+                    data.svgDataBack = s2.svg;
+                }
+
+                // Restore original side
+                await CanvasManager.loadState(sideStates[originalSide]);
+            } else if (config.variant === 'back' && originalSide === 'back') {
+                // Already collected above, just ensuring back fields are filled
+            } else if (config.variant === 'front' && originalSide === 'front') {
+                // Already collected above
+            }
+        } catch (e) {
+            console.error('Export error:', e);
+        }
+
+        return data;
+    }
+
+    /**
      * Toolbar кнопки
      */
     function _bindToolbarButtons() {
@@ -272,45 +351,13 @@ const App = (function () {
             btn.innerHTML = '<i class="ri-loader-4-line pe-spin"></i> Сохраняем...';
 
             try {
-                const canvas = CanvasManager.getCanvas();
-                const config = GarmentManager.getConfig();
+                const designData = await _collectDesignData();
+                designData.title = 'Дизайн ' + new Date().toLocaleString();
 
-                // Сохраняем текущую сторону в sideStates перед экспортом
-                sideStates[config.side] = JSON.stringify(canvas.toJSON());
-
-                const previewDataUrl = await ExportManager.generateMockupDataURL();
-
-                // Генерируем превью для другой стороны, если там есть объекты
-                let previewDataUrlBack = null;
-                const otherSide = config.side === 'front' ? 'back' : 'front';
-                if (sideStates[otherSide]) {
-                    const parsedOther = JSON.parse(sideStates[otherSide]);
-                    if (parsedOther.objects && parsedOther.objects.length > 0) {
-                        // Для честности нужно было бы переключить канвас и сделать экспорт, 
-                        // но для экономии времени пока сохраним только основное превью или пустую заглушку
-                        // В идеале: свитч -> экспорт -> свитч обратно
-                    }
-                }
-
-                const isDoubleSided = (sideStates.front && JSON.parse(sideStates.front).objects.length > 0) &&
-                    (sideStates.back && JSON.parse(sideStates.back).objects.length > 0);
-
-                const res = await ApiClient.saveDesign({
-                    garmentType: config.garment,
-                    garmentColor: config.color,
-                    canvasJson: sideStates.front,
-                    canvasJsonBack: sideStates.back,
-                    svgData: canvas.toSVG(), // SVG для текущей стороны (упрощение)
-                    highresDataUrl: canvas.toDataURL({ format: 'png', multiplier: 4 }),
-                    previewDataUrl: previewDataUrl,
-                    isDoubleSided: isDoubleSided,
-                    printArea: config.config.printArea,
-                    title: 'Дизайн ' + new Date().toLocaleString()
-                });
+                const res = await ApiClient.saveDesign(designData);
 
                 if (res && res.success) {
                     showToast('Дизайн сохранён!', 'success');
-                    // Сохраняем ID последнего дизайна в data-атрибут кнопки "В корзину" (опционально)
                     document.getElementById('btn-add-cart').dataset.designId = res.data.design_id;
                 } else {
                     showToast(res?.message || 'Ошибка сохранения', 'error');
@@ -347,26 +394,10 @@ const App = (function () {
 
                 // Если ID не передан, значит сохраняем текущий холст
                 if (!designId) {
-                    const canvas = CanvasManager.getCanvas();
-                    const config = GarmentManager.getConfig();
+                    const designData = await _collectDesignData();
+                    designData.title = 'Дизайн для корзины';
 
-                    // Сохраняем текущее состояние холста перед экспортом
-                    sideStates[config.side] = JSON.stringify(canvas.toJSON());
-
-                    const previewDataUrl = await ExportManager.generateMockupDataURL();
-                    const isDoubleSided = (config.variant === 'both');
-
-                    const resDesign = await ApiClient.saveDesign({
-                        garmentType: config.garment,
-                        garmentColor: config.color,
-                        canvasJson: sideStates.front,
-                        canvasJsonBack: sideStates.back,
-                        highresDataUrl: canvas.toDataURL({ format: 'png', multiplier: 4 }),
-                        previewDataUrl: previewDataUrl,
-                        isDoubleSided: isDoubleSided,
-                        printArea: config.config.printArea,
-                        title: 'Дизайн для корзины'
-                    });
+                    const resDesign = await ApiClient.saveDesign(designData);
 
                     if (resDesign && resDesign.success) {
                         designId = resDesign.data.design_id;
@@ -640,27 +671,34 @@ const App = (function () {
                             if (!data) return;
 
                             if (GarmentManager.setGarment) {
-                                // При смене дизайна или одежды — сбрасываем локальные состояния сторон
-                                sideStates.front = null;
-                                sideStates.back = null;
-                                GarmentManager.setGarment(data.garment_type);
+                                let variant = 'front';
+                                if (data.is_double_sided) variant = 'both';
+                                else if (data.canvas_json_back && !data.canvas_json) variant = 'back';
+
+                                GarmentManager.setGarment(data.garment_type, true);
+                                GarmentManager.setVariant(variant);
+
+                                sideStates.front = data.canvas_json;
+                                sideStates.back = data.canvas_json_back;
                             }
                             if (GarmentManager.setColor) GarmentManager.setColor(data.garment_color);
                             setTimeout(() => {
                                 const canvas = CanvasManager.getCanvas();
-                                let canvasData = data.canvas_json;
-                                if (!canvasData) {
-                                    showToast('Дизайн пуст', 'info');
+                                const config = GarmentManager.getConfig();
+                                let canvasData = sideStates[config.side];
+
+                                if (canvasData) {
+                                    CanvasManager.loadState(canvasData).then(() => {
+                                        CanvasManager.saveState && CanvasManager.saveState();
+                                        modalDesigns.style.display = 'none';
+                                        showToast('Дизайн загружен!', 'success');
+                                    });
+                                } else {
+                                    CanvasManager.clearCanvas();
                                     modalDesigns.style.display = 'none';
-                                    return;
+                                    showToast('Загружен пустой холст', 'info');
                                 }
-                                canvas.loadFromJSON(canvasData, () => {
-                                    canvas.renderAll();
-                                    CanvasManager.saveState && CanvasManager.saveState();
-                                    modalDesigns.style.display = 'none';
-                                    showToast('Дизайн загружен!', 'success');
-                                });
-                            }, 400); // Дадим время загрузить одежду
+                            }, 500);
                         });
                     });
 
@@ -755,6 +793,7 @@ const App = (function () {
                                 </div>
                                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--text-muted);">
                                     <span style="background:var(--bg-tertiary); padding:4px 10px; border-radius:8px;">Позиций: <strong>${o.total_items}</strong></span>
+                                    <span style="font-weight:700; font-size:15px; color:var(--text-primary);">${(o.total_price || 0).toLocaleString()} ֏</span>
                                 </div>
                             </div>
                         `;
@@ -868,9 +907,9 @@ const App = (function () {
                 } else {
                     body.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Корзина пока пуста.</div>';
                     clearBtn.style.display = 'none';
+                    if (totalDisplay) totalDisplay.textContent = '0 ֏';
                     const checkoutBtn = document.getElementById('btn-checkout');
                     if (checkoutBtn) checkoutBtn.disabled = true;
-                    if (totalDisplay) totalDisplay.textContent = '0 ֏';
                 }
             } catch (err) {
                 body.innerHTML = 'Ошибка загрузки корзины.';
@@ -955,17 +994,8 @@ const App = (function () {
         canvas.backgroundColor = 'transparent';
 
         // 3. Загружаем сохранённое состояние для новой стороны
-        if (sideStates[newSide]) {
-            return new Promise(resolve => {
-                canvas.loadFromJSON(sideStates[newSide], () => {
-                    canvas.renderAll();
-                    updatePrice();
-                    resolve();
-                });
-            });
-        } else {
-            updatePrice();
-        }
+        await CanvasManager.loadState(sideStates[newSide]);
+        updatePrice();
     }
 
     /**
@@ -982,17 +1012,17 @@ const App = (function () {
         const config = GarmentManager.getConfig();
         if (!config || !config.config) return;
 
-        const price = config.config.price || { oneSide: 1500, twoSides: 2500 };
+        const price = config.config.price || { front: 1500, back: 1500, both: 2500 };
 
-        let finalPrice = price.oneSide;
+        let finalPrice = price.front;
 
         // РАСЧЁТ ЦЕНЫ:
-        // Если выбран 'both', то цена суммируется (Front + Back)
         if (config.variant === 'both') {
-            finalPrice = price.oneSide + price.twoSides;
+            finalPrice = price.both;
+        } else if (config.variant === 'back') {
+            finalPrice = price.back;
         } else {
-            // Иначе — цена за одну сторону
-            finalPrice = price.oneSide;
+            finalPrice = price.front;
         }
 
         const priceDisplay = document.getElementById('current-price-display');

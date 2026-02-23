@@ -230,7 +230,7 @@ const AdminApp = (function () {
                 <tr>
                     <td><strong>${o.order_number}</strong></td>
                     <td>${renderBadge(o.status)}</td>
-                    <td>${o.total_items} шт.</td>
+                    <td>${(o.total_price || 0).toLocaleString()} ֏ / ${o.total_items}</td>
                     <td>${formatDate(o.created_at)}</td>
                     <td>
                         <button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm" 
@@ -274,7 +274,7 @@ const AdminApp = (function () {
         const tbody = document.getElementById('recent-orders-body');
 
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="pe-admin-table__empty">Заказов пока нет</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="pe-admin-table__empty">Заказов пока нет</td></tr>';
             return;
         }
 
@@ -285,6 +285,7 @@ const AdminApp = (function () {
                 <td>${escHtml(order.customer_phone || '—')}</td>
                 <td>${renderBadge(order.status)}</td>
                 <td>${order.total_items}</td>
+                <td><strong>${(order.total_price || 0).toLocaleString()} ֏</strong></td>
                 <td>${formatDate(order.created_at)}</td>
                 <td>
                     <button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm"
@@ -327,7 +328,7 @@ const AdminApp = (function () {
         const tbody = document.getElementById('orders-body');
 
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="8" class="pe-admin-table__empty">Заказов не найдено</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="pe-admin-table__empty">Заказов не найдено</td></tr>';
             return;
         }
 
@@ -339,6 +340,7 @@ const AdminApp = (function () {
                 <td>${escHtml(order.customer_phone || '—')}</td>
                 <td>${renderBadge(order.status)}</td>
                 <td>${order.total_items}</td>
+                <td><strong>${(order.total_price || 0).toLocaleString()} ֏</strong></td>
                 <td>${formatDate(order.created_at)}</td>
                 <td>
                     <button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm"
@@ -413,53 +415,65 @@ const AdminApp = (function () {
                            letter-spacing: 0.5px;">
                     Позиции заказа
                 </h4>
-                <div class="pe-admin-order-items">
-                    ${order.items.map((item, index) => `
-                        <div class="pe-admin-order-item">
-                            ${item.preview_path
-                    ? `<img class="pe-admin-order-item__preview" 
-                                        src="/${item.preview_path}" 
-                                        alt="Превью">`
-                    : `<div class="pe-admin-order-item__preview" 
-                                        style="display:flex;align-items:center;justify-content:center;
-                                               color:var(--admin-text-muted);font-size:12px;">
-                                        Нет превью
-                                   </div>`
-                }
-                            <div class="pe-admin-order-item__info">
-                                <p>Тип: <span>${garmentLabels[item.garment_type] || item.garment_type}</span></p>
-                                <p>Цвет: <span>
-                                    <span style="display:inline-block;width:12px;height:12px;
-                                                 border-radius:50%;background:${item.garment_color};
-                                                 vertical-align:middle;margin-right:4px;
-                                                 border:1px solid rgba(255,255,255,0.2);"></span>
-                                    ${item.garment_color}
-                                </span></p>
-                                <p>Размер: <span>${item.size}</span></p>
-                                <p>Кол-во: <span>${item.quantity}</span></p>
+                <div class="pe-admin-order-items" style="display:flex; flex-direction:column; gap:16px;">
+                    ${order.items.map((item, index) => {
+                const hasFront = !!item.preview_path;
+                const hasBack = !!item.preview_back_path;
+
+                return `
+                        <div class="pe-admin-order-item" style="display:flex; gap:20px; align-items:flex-start; padding:16px; background:var(--admin-bg-secondary); border:1px solid var(--admin-border); border-radius:12px;">
+                            <div class="pe-admin-order-item__previews" style="display:flex; gap:8px;">
+                                ${hasFront ? `
+                                    <div style="text-align:center;">
+                                        <img src="/${item.preview_path}" style="width:90px; height:90px; object-fit:contain; background:var(--admin-bg-tertiary); border-radius:8px; border:1px solid var(--admin-border);">
+                                        <div style="font-size:9px; margin-top:4px; color:var(--admin-text-muted); font-weight:700;">FRONT</div>
+                                    </div>
+                                ` : ''}
+                                ${hasBack ? `
+                                    <div style="text-align:center;">
+                                        <img src="/${item.preview_back_path}" style="width:90px; height:90px; object-fit:contain; background:var(--admin-bg-tertiary); border-radius:8px; border:1px solid var(--admin-border);">
+                                        <div style="font-size:9px; margin-top:4px; color:var(--admin-text-muted); font-weight:700;">BACK</div>
+                                    </div>
+                                ` : ''}
+                                ${(!hasFront && !hasBack) ? `<div style="width:90px; height:90px; background:var(--admin-bg-tertiary); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--admin-text-muted); font-size:11px;">Нет превью</div>` : ''}
                             </div>
-                            <div class="pe-admin-order-item__actions">
-                                ${item.highres_path
-                    ? `<a href="/${item.highres_path}" download 
-                                          class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm">
-                                          PNG
-                                       </a>`
-                    : ''}
-                                ${item.has_svg
-                    ? `<button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm"
-                                               onclick="AdminApp.downloadOrderItemData(${index}, 'svg')">
-                                          SVG
-                                       </button>`
-                    : ''}
-                                ${item.has_canvas
-                    ? `<button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm"
-                                               onclick="AdminApp.downloadOrderItemData(${index}, 'json')">
-                                          JSON
-                                       </button>`
-                    : ''}
+                            
+                            <div class="pe-admin-order-item__info" style="flex:1;">
+                                <div style="font-weight:700; font-size:15px; margin-bottom:8px;">${garmentLabels[item.garment_type] || item.garment_type}</div>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:13px;">
+                                    <p style="margin:0; color:var(--admin-text-muted);">Цвет: <span style="color:var(--admin-text-primary); font-weight:600;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${item.garment_color}; margin-right:4px; border:1px solid rgba(0,0,0,0.1);"></span>${item.garment_color}</span></p>
+                                    <p style="margin:0; color:var(--admin-text-muted);">Размер: <span style="color:var(--admin-text-primary); font-weight:600;">${item.size}</span></p>
+                                    <p style="margin:0; color:var(--admin-text-muted);">Кол-во: <span style="color:var(--admin-text-primary); font-weight:600;">${item.quantity} шт.</span></p>
+                                    <p style="margin:0; color:var(--admin-text-muted);">Цена: <span style="color:var(--admin-text-primary); font-weight:600;">${item.price || 0} ֏</span></p>
+                                </div>
+                                ${item.notes ? `<div style="margin-top:8px; font-size:12px; font-style:italic; color:var(--admin-text-muted);">"${item.notes}"</div>` : ''}
                             </div>
-                        </div>
-                    `).join('')}
+
+                            <div class="pe-admin-order-item__actions" style="display:flex; flex-direction:column; gap:8px; min-width:140px;">
+                                <!-- Front Actions -->
+                                <div style="padding:6px; background:var(--admin-bg-tertiary); border-radius:8px;">
+                                    <div style="font-size:9px; font-weight:800; color:var(--admin-text-muted); margin-bottom:6px; letter-spacing:0.5px;">SIDE (FRONT)</div>
+                                    <div style="display:flex; gap:4px;">
+                                        ${item.highres_path ? `<a href="/${item.highres_path}" download class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm" style="flex:1; padding:4px;">PNG</a>` : ''}
+                                        ${item.has_svg ? `<button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm" style="flex:1; padding:4px;" onclick="AdminApp.downloadOrderItemData(${index}, 'svg', 'front')">SVG</button>` : ''}
+                                        ${item.has_canvas ? `<button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm" style="flex:1; padding:4px;" onclick="AdminApp.downloadOrderItemData(${index}, 'json', 'front')">JSON</button>` : ''}
+                                    </div>
+                                </div>
+
+                                <!-- Back Actions -->
+                                ${hasBack ? `
+                                <div style="padding:6px; background:var(--admin-bg-tertiary); border-radius:8px;">
+                                    <div style="font-size:9px; font-weight:800; color:var(--admin-text-muted); margin-bottom:6px; letter-spacing:0.5px;">SIDE (BACK)</div>
+                                    <div style="display:flex; gap:4px;">
+                                        ${item.highres_back_path ? `<a href="/${item.highres_back_path}" download class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm" style="flex:1; padding:4px;">PNG</a>` : ''}
+                                        ${item.has_svg_back ? `<button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm" style="flex:1; padding:4px;" onclick="AdminApp.downloadOrderItemData(${index}, 'svg', 'back')">SVG</button>` : ''}
+                                        ${item.has_canvas_back ? `<button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm" style="flex:1; padding:4px;" onclick="AdminApp.downloadOrderItemData(${index}, 'json', 'back')">JSON</button>` : ''}
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>`;
+            }).join('')}
                 </div>
             `;
             state.currentOrderItems = order.items;
@@ -592,17 +606,24 @@ const AdminApp = (function () {
         }
     }
 
-    function downloadOrderItemData(itemIndex, type) {
+    function downloadOrderItemData(itemIndex, type, side = 'front') {
         const item = state.currentOrderItems[itemIndex];
         if (!item) return;
 
-        if (type === 'svg' && item.svg_data) {
-            downloadBlob(item.svg_data, `order_item_${item.id}.svg`, 'image/svg+xml');
-        } else if (type === 'json' && item.canvas_json) {
-            const jsonStr = typeof item.canvas_json === 'string'
-                ? item.canvas_json
-                : JSON.stringify(item.canvas_json, null, 2);
-            downloadBlob(jsonStr, `order_item_${item.id}.json`, 'application/json');
+        const isBack = (side === 'back');
+        const content = isBack
+            ? (type === 'svg' ? item.svg_data_back : item.canvas_json_back)
+            : (type === 'svg' ? item.svg_data : item.canvas_json);
+
+        if (!content) return;
+
+        if (type === 'svg') {
+            downloadBlob(content, `order_item_${item.id}_${side}.svg`, 'image/svg+xml');
+        } else if (type === 'json') {
+            const jsonStr = typeof content === 'string'
+                ? content
+                : JSON.stringify(content, null, 2);
+            downloadBlob(jsonStr, `order_item_${item.id}_${side}.json`, 'application/json');
         }
     }
 
@@ -641,11 +662,11 @@ const AdminApp = (function () {
 
         grid.innerHTML = garments.map(g => {
             const inactiveClass = g.is_active ? '' : 'pe-admin-garment-card--inactive';
-            const priceHtml = g.price_one_side ? `
-                <div style="font-size:12px; margin-top:4px; color:var(--admin-primary); font-weight:600;">
-                    ${g.price_one_side} ֏ / ${g.price_two_sides} ֏
+            const priceHtml = `
+                <div style="font-size:11px; margin-top:4px; color:var(--admin-primary); font-weight:600; line-height:1.2;">
+                    ${g.price_front} ֏ (П) / ${g.price_back} ֏ (З) / ${g.price_both} ֏ (Оба)
                 </div>
-            ` : '';
+            `;
             return `
     <div class="pe-admin-garment-card ${inactiveClass}">
                     <div class="pe-admin-garment-card__img-wrap">
@@ -808,6 +829,9 @@ const AdminApp = (function () {
 
         document.getElementById('ge-price-one').value = garment ? (garment.price_one_side || 0) : 0;
         document.getElementById('ge-price-two').value = garment ? (garment.price_two_sides || 0) : 0;
+        document.getElementById('ge-price-front').value = garment ? (garment.price_front || 1500) : 1500;
+        document.getElementById('ge-price-back').value = garment ? (garment.price_back || 1500) : 1500;
+        document.getElementById('ge-price-both').value = garment ? (garment.price_both || 2500) : 2500;
 
         document.getElementById('ge-sort').value = garment ? garment.sort_order : 0;
         document.getElementById('ge-active').checked = garment ? !!garment.is_active : true;
@@ -869,6 +893,9 @@ const AdminApp = (function () {
 
             formData.append('price_one_side', document.getElementById('ge-price-one').value);
             formData.append('price_two_sides', document.getElementById('ge-price-two').value);
+            formData.append('price_front', document.getElementById('ge-price-front').value);
+            formData.append('price_back', document.getElementById('ge-price-back').value);
+            formData.append('price_both', document.getElementById('ge-price-both').value);
 
             formData.append('sort_order', document.getElementById('ge-sort').value);
             formData.append('is_active', document.getElementById('ge-active').checked ? 1 : 0);
@@ -917,6 +944,9 @@ const AdminApp = (function () {
                 print_area_back_height: parseFloat(document.getElementById('ge-pa-back-height').value),
                 price_one_side: parseInt(document.getElementById('ge-price-one').value),
                 price_two_sides: parseInt(document.getElementById('ge-price-two').value),
+                price_front: parseInt(document.getElementById('ge-price-front').value),
+                price_back: parseInt(document.getElementById('ge-price-back').value),
+                price_both: parseInt(document.getElementById('ge-price-both').value),
                 sort_order: parseInt(document.getElementById('ge-sort').value),
                 is_active: document.getElementById('ge-active').checked ? 1 : 0,
             };
