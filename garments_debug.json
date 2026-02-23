@@ -1,0 +1,32 @@
+[
+    {
+        "slug": "tshirt",
+        "image_path": "assets\/garments\/tshirt.png",
+        "image_back_path": "assets\/garments\/tshirt.png"
+    },
+    {
+        "slug": "hoodie",
+        "image_path": "assets\/garments\/hoodie.png",
+        "image_back_path": "assets\/garments\/hoodie.png"
+    },
+    {
+        "slug": "sweatshirt",
+        "image_path": "assets\/garments\/sweatshirt.png",
+        "image_back_path": "assets\/garments\/sweatshirt.png"
+    },
+    {
+        "slug": "polo",
+        "image_path": "assets\/garments\/polo.png",
+        "image_back_path": "assets\/garments\/polo.png"
+    },
+    {
+        "slug": "tank",
+        "image_path": "assets\/garments\/tank.png",
+        "image_back_path": "assets\/garments\/tank.png"
+    },
+    {
+        "slug": "tester",
+        "image_path": "uploads\/originals\/20260223_092617_5c7c4909_klau-club-p-temnii-les-oboi-krasivo-6.jpg",
+        "image_back_path": "uploads\/originals\/20260223_105358_346ce94f_les_tuman_temnyj.jpg"
+    }
+]

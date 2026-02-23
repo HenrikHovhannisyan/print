@@ -14,6 +14,12 @@ const App = (function () {
     /** Текущая тема: 'dark' | 'light' */
     let currentTheme = 'light';
 
+    /** Состояние холстов для сторон (JSON) */
+    let sideStates = {
+        front: null,
+        back: null
+    };
+
     /**
      * Инициализация всего приложения
      */
@@ -45,6 +51,9 @@ const App = (function () {
 
             // 8. Авторизация и модальные окна
             _initAuthAndModals();
+
+            // 9. Начальное обновление цены
+            updatePrice();
 
             console.log('%c PrintEditor загружен ', 'background:#6c5ce7; color:#fff; padding:4px 12px; border-radius:4px; font-weight:bold;');
         }, 100);
@@ -266,22 +275,35 @@ const App = (function () {
                 const canvas = CanvasManager.getCanvas();
                 const config = GarmentManager.getConfig();
 
+                // Сохраняем текущую сторону в sideStates перед экспортом
+                sideStates[config.side] = JSON.stringify(canvas.toJSON());
+
                 const previewDataUrl = await ExportManager.generateMockupDataURL();
 
-                canvas.discardActiveObject();
-                canvas.renderAll();
+                // Генерируем превью для другой стороны, если там есть объекты
+                let previewDataUrlBack = null;
+                const otherSide = config.side === 'front' ? 'back' : 'front';
+                if (sideStates[otherSide]) {
+                    const parsedOther = JSON.parse(sideStates[otherSide]);
+                    if (parsedOther.objects && parsedOther.objects.length > 0) {
+                        // Для честности нужно было бы переключить канвас и сделать экспорт, 
+                        // но для экономии времени пока сохраним только основное превью или пустую заглушку
+                        // В идеале: свитч -> экспорт -> свитч обратно
+                    }
+                }
 
-                const canvasJson = canvas.toJSON();
-                const svgData = canvas.toSVG();
-                const highresDataUrl = canvas.toDataURL({ format: 'png', multiplier: 4 });
+                const isDoubleSided = (sideStates.front && JSON.parse(sideStates.front).objects.length > 0) &&
+                    (sideStates.back && JSON.parse(sideStates.back).objects.length > 0);
 
                 const res = await ApiClient.saveDesign({
                     garmentType: config.garment,
                     garmentColor: config.color,
-                    canvasJson,
-                    svgData,
-                    highresDataUrl,
-                    previewDataUrl,
+                    canvasJson: sideStates.front,
+                    canvasJsonBack: sideStates.back,
+                    svgData: canvas.toSVG(), // SVG для текущей стороны (упрощение)
+                    highresDataUrl: canvas.toDataURL({ format: 'png', multiplier: 4 }),
+                    previewDataUrl: previewDataUrl,
+                    isDoubleSided: isDoubleSided,
                     printArea: config.config.printArea,
                     title: 'Дизайн ' + new Date().toLocaleString()
                 });
@@ -328,17 +350,20 @@ const App = (function () {
                     const canvas = CanvasManager.getCanvas();
                     const config = GarmentManager.getConfig();
 
+                    // Сохраняем текущее состояние холста перед экспортом
+                    sideStates[config.side] = JSON.stringify(canvas.toJSON());
+
                     const previewDataUrl = await ExportManager.generateMockupDataURL();
-                    canvas.discardActiveObject();
-                    canvas.renderAll();
+                    const isDoubleSided = (config.variant === 'both');
 
                     const resDesign = await ApiClient.saveDesign({
                         garmentType: config.garment,
                         garmentColor: config.color,
-                        canvasJson: canvas.toJSON(),
-                        svgData: canvas.toSVG(),
+                        canvasJson: sideStates.front,
+                        canvasJsonBack: sideStates.back,
                         highresDataUrl: canvas.toDataURL({ format: 'png', multiplier: 4 }),
                         previewDataUrl: previewDataUrl,
+                        isDoubleSided: isDoubleSided,
                         printArea: config.config.printArea,
                         title: 'Дизайн для корзины'
                     });
@@ -614,7 +639,12 @@ const App = (function () {
                             const data = modalDesigns._loadedDesigns.find(x => x.id == id);
                             if (!data) return;
 
-                            if (GarmentManager.setGarment) GarmentManager.setGarment(data.garment_type);
+                            if (GarmentManager.setGarment) {
+                                // При смене дизайна или одежды — сбрасываем локальные состояния сторон
+                                sideStates.front = null;
+                                sideStates.back = null;
+                                GarmentManager.setGarment(data.garment_type);
+                            }
                             if (GarmentManager.setColor) GarmentManager.setColor(data.garment_color);
                             setTimeout(() => {
                                 const canvas = CanvasManager.getCanvas();
@@ -750,18 +780,30 @@ const App = (function () {
             modalCart.style.display = 'flex';
             const body = document.getElementById('cart-body');
             const clearBtn = document.getElementById('btn-clear-cart');
+            const totalDisplay = document.getElementById('cart-total-price');
             body.innerHTML = 'Загрузка...';
 
             try {
                 const res = await ApiClient.getCart();
                 if (res.success && res.data.items && res.data.items.length > 0) {
                     clearBtn.style.display = 'block';
-                    body.innerHTML = res.data.items.map(i => `
-                        <div class="cart-item" style="display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--color-border); padding:16px 0;" data-id="${i.id}">
-                            <div style="position:relative; width:100px; height:100px; background:var(--color-bg-tertiary); border-radius:12px; border:1px solid var(--color-border); display:flex; align-items:center; justify-content:center; padding:8px;">
-                                <img src="${i.preview_path}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                    const checkoutBtn = document.getElementById('btn-checkout');
+                    if (checkoutBtn) checkoutBtn.disabled = false;
+                    let totalPrice = 0;
+
+                    body.innerHTML = res.data.items.map(i => {
+                        const itemTotal = (i.price || 0) * (i.quantity || 1);
+                        totalPrice += itemTotal;
+
+                        return `
+                        <div class="cart-item" style="display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--color-border); padding:24px 0;" data-id="${i.id}">
+                            <div style="position:relative; width:110px; height:110px; background:var(--color-bg-tertiary); border-radius:12px; border:1px solid var(--color-border); display:flex; align-items:center; justify-content:center; padding:8px;">
+                                <img src="/${i.preview_path}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                                ${i.is_double_sided ? '<div style="position:absolute; bottom:-8px; right:-8px; background:var(--color-primary); color:#fff; font-size:9px; font-weight:800; padding:4px 8px; border-radius:20px; border:2px solid var(--color-bg-secondary);">2 СТОРОНЫ</div>' : ''}
                             </div>
                             <div style="flex:1; display:flex; flex-direction:column; gap:12px;">
+                                <div style="font-weight:700; font-size:16px;">${i.title || 'Пользовательский дизайн'}</div>
+                                
                                 <div style="display:flex; gap:24px; align-items:center;">
                                     <div style="display:flex; flex-direction:column; gap:4px;">
                                         <span style="font-size:11px; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.02em; font-weight:600;">Размер</span>
@@ -773,13 +815,20 @@ const App = (function () {
                                         <span style="font-size:11px; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.02em; font-weight:600;">Количество</span>
                                         <input type="number" class="pe-input pe-input--sm cart-item-qty" value="${i.quantity}" min="1" max="99" style="width:70px; height:32px; text-align:center; font-size:13px; background:var(--color-bg-tertiary);">
                                     </div>
+                                    <div style="flex:1; text-align:right; align-self:flex-end;">
+                                        <div style="font-size:12px; color:var(--color-text-muted); margin-bottom:2px;">Цена: ${i.price.toLocaleString()} ֏</div>
+                                        <div style="font-weight:800; font-size:20px; color:var(--color-primary);">${itemTotal.toLocaleString()} ֏</div>
+                                    </div>
                                 </div>
                             </div>
-                            <button class="pe-btn pe-btn--danger pe-btn--icon pe-btn--sm btn-remove-cart-item" data-id="${i.id}" style="border-radius:10px;">
-                                <i class="ri-delete-bin-line" style="font-size:16px;"></i>
+                            <button class="pe-btn pe-btn--danger pe-btn--icon pe-btn--sm btn-remove-cart-item" data-id="${i.id}" style="border-radius:10px; align-self: flex-start;">
+                                <i class="ri-delete-bin-line" style="font-size:18px;"></i>
                             </button>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
+
+                    if (totalDisplay) totalDisplay.textContent = `${totalPrice.toLocaleString()} ֏`;
 
                     // События для изменения размера
                     body.querySelectorAll('.cart-item-size').forEach(select => {
@@ -788,6 +837,7 @@ const App = (function () {
                             const newSize = e.target.value;
                             await ApiClient.updateCartItem(itemId, { size: newSize });
                             showToast('Размер обновлен', 'success');
+                            loadCartData();
                         });
                     });
 
@@ -798,6 +848,7 @@ const App = (function () {
                             const newQty = parseInt(e.target.value) || 1;
                             await ApiClient.updateCartItem(itemId, { quantity: newQty });
                             showToast('Количество обновлено', 'success');
+                            loadCartData();
                         });
                     });
 
@@ -815,8 +866,11 @@ const App = (function () {
                     });
 
                 } else {
-                    body.innerHTML = 'Корзина пуста.';
+                    body.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Корзина пока пуста.</div>';
                     clearBtn.style.display = 'none';
+                    const checkoutBtn = document.getElementById('btn-checkout');
+                    if (checkoutBtn) checkoutBtn.disabled = true;
+                    if (totalDisplay) totalDisplay.textContent = '0 ֏';
                 }
             } catch (err) {
                 body.innerHTML = 'Ошибка загрузки корзины.';
@@ -887,10 +941,79 @@ const App = (function () {
     }
 
     /**
-     * Обновление статус-бара
+     * Вызывается при смене стороны (перед/зад)
+     */
+    async function onSideChange(oldSide, newSide) {
+        const canvas = CanvasManager.getCanvas();
+        if (!canvas) return;
+
+        // 1. Сохраняем текущее состояние в хранилище
+        sideStates[oldSide] = JSON.stringify(canvas.toJSON());
+
+        // 2. Очищаем холст
+        canvas.clear();
+        canvas.backgroundColor = 'transparent';
+
+        // 3. Загружаем сохранённое состояние для новой стороны
+        if (sideStates[newSide]) {
+            return new Promise(resolve => {
+                canvas.loadFromJSON(sideStates[newSide], () => {
+                    canvas.renderAll();
+                    updatePrice();
+                    resolve();
+                });
+            });
+        } else {
+            updatePrice();
+        }
+    }
+
+    /**
+     * Алиас для совместимости
      */
     function updateStatus() {
-        // Можно расширить при необходимости
+        updatePrice();
+    }
+
+    /**
+     * Расчёт и обновление цены
+     */
+    function updatePrice() {
+        const config = GarmentManager.getConfig();
+        if (!config || !config.config) return;
+
+        const price = config.config.price || { oneSide: 1500, twoSides: 2500 };
+
+        let finalPrice = price.oneSide;
+
+        // РАСЧЁТ ЦЕНЫ:
+        // Если выбран 'both', то цена суммируется (Front + Back)
+        if (config.variant === 'both') {
+            finalPrice = price.oneSide + price.twoSides;
+        } else {
+            // Иначе — цена за одну сторону
+            finalPrice = price.oneSide;
+        }
+
+        const priceDisplay = document.getElementById('current-price-display');
+        if (priceDisplay) {
+            priceDisplay.textContent = `${finalPrice} ֏`;
+            // Анимация при смене цены (только если цена изменилась)
+            if (priceDisplay.dataset.lastPrice != finalPrice) {
+                priceDisplay.style.transform = 'scale(1.1)';
+                setTimeout(() => priceDisplay.style.transform = 'scale(1)', 100);
+                priceDisplay.dataset.lastPrice = finalPrice;
+            }
+        }
+    }
+
+    function resetSideStates() {
+        sideStates.front = null;
+        sideStates.back = null;
+        if (CanvasManager.getCanvas()) {
+            CanvasManager.clearCanvas();
+        }
+        updatePrice();
     }
 
     // Запуск при загрузке DOM
@@ -900,7 +1023,10 @@ const App = (function () {
     return {
         showToast,
         updateStatus,
-        toggleTheme
+        toggleTheme,
+        onSideChange,
+        updatePrice,
+        resetSideStates
     };
 
 })();

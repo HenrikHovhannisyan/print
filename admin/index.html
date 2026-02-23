@@ -233,53 +233,118 @@
                     <div class="pe-admin-garment-editor">
                         <!-- Левая часть: форма -->
                         <div class="pe-admin-garment-editor__form">
-                            <div class="pe-admin-field">
-                                <label for="ge-name">Название</label>
-                                <input type="text" id="ge-name" placeholder="Например: Футболка">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                                <div class="pe-admin-field">
+                                    <label for="ge-name">Название</label>
+                                    <input type="text" id="ge-name" placeholder="Например: Футболка">
+                                </div>
+                                <div class="pe-admin-field">
+                                    <label for="ge-slug">Slug (URL-код)</label>
+                                    <input type="text" id="ge-slug" placeholder="tshirt">
+                                </div>
                             </div>
-                            <div class="pe-admin-field">
-                                <label for="ge-slug">Slug (URL-код)</label>
-                                <input type="text" id="ge-slug" placeholder="tshirt">
+
+                            <div class="pe-admin-price-group">
+                                <div class="pe-admin-field" style="margin-bottom:0">
+                                    <label for="ge-price-one">Цена (1 сторона), ֏</label>
+                                    <input type="number" id="ge-price-one" value="0" min="0">
+                                </div>
+                                <div class="pe-admin-field" style="margin-bottom:0">
+                                    <label for="ge-price-two">Цена (2 стороны), ֏</label>
+                                    <input type="number" id="ge-price-two" value="0" min="0">
+                                </div>
                             </div>
-                            <div class="pe-admin-field">
-                                <label for="ge-image">Изображение одежды</label>
-                                <input type="file" id="ge-image" accept="image/png,image/jpeg,image/webp">
-                                <input type="hidden" id="ge-image-path">
+
+                            <div class="pe-admin-tabs">
+                                <button class="pe-admin-tab-btn active" data-tab="front">Передняя часть</button>
+                                <button class="pe-admin-tab-btn" data-tab="back">Задняя часть</button>
                             </div>
-                            <div class="pe-admin-field">
-                                <label>Область печати (% от изображения)</label>
-                                <div class="pe-admin-print-area-inputs">
-                                    <div class="pe-admin-field-inline">
-                                        <label for="ge-pa-top">Top</label>
-                                        <input type="number" id="ge-pa-top" value="30" min="0" max="100" step="0.5">
-                                    </div>
-                                    <div class="pe-admin-field-inline">
-                                        <label for="ge-pa-left">Left</label>
-                                        <input type="number" id="ge-pa-left" value="35" min="0" max="100" step="0.5">
-                                    </div>
-                                    <div class="pe-admin-field-inline">
-                                        <label for="ge-pa-width">Width</label>
-                                        <input type="number" id="ge-pa-width" value="30" min="1" max="100" step="0.5">
-                                    </div>
-                                    <div class="pe-admin-field-inline">
-                                        <label for="ge-pa-height">Height</label>
-                                        <input type="number" id="ge-pa-height" value="30" min="1" max="100" step="0.5">
+
+                            <!-- Tab: Front -->
+                            <div class="pe-admin-tab-pane active" id="tab-front">
+                                <div class="pe-admin-field">
+                                    <label for="ge-image">Изображение (спереди)</label>
+                                    <input type="file" id="ge-image" accept="image/png,image/jpeg,image/webp">
+                                    <input type="hidden" id="ge-image-path">
+                                </div>
+                                <div class="pe-admin-field">
+                                    <label>Область печати (ПЕРЕД)</label>
+                                    <div class="pe-admin-print-area-inputs">
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-top">Top %</label>
+                                            <input type="number" id="ge-pa-top" value="30" min="0" max="100" step="0.5">
+                                        </div>
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-left">Left %</label>
+                                            <input type="number" id="ge-pa-left" value="35" min="0" max="100"
+                                                step="0.5">
+                                        </div>
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-width">Width %</label>
+                                            <input type="number" id="ge-pa-width" value="30" min="1" max="100"
+                                                step="0.5">
+                                        </div>
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-height">Height %</label>
+                                            <input type="number" id="ge-pa-height" value="30" min="1" max="100"
+                                                step="0.5">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="pe-admin-field">
-                                <label for="ge-sort">Порядок сортировки</label>
-                                <input type="number" id="ge-sort" value="0" min="0">
+
+                            <!-- Tab: Back -->
+                            <div class="pe-admin-tab-pane" id="tab-back">
+                                <div class="pe-admin-field">
+                                    <label for="ge-image-back">Изображение (сзади)</label>
+                                    <input type="file" id="ge-image-back" accept="image/png,image/jpeg,image/webp">
+                                    <input type="hidden" id="ge-image-back-path">
+                                </div>
+                                <div class="pe-admin-field">
+                                    <label>Область печати (СЗАДИ)</label>
+                                    <div class="pe-admin-print-area-inputs">
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-back-top">Top %</label>
+                                            <input type="number" id="ge-pa-back-top" value="30" min="0" max="100"
+                                                step="0.5">
+                                        </div>
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-back-left">Left %</label>
+                                            <input type="number" id="ge-pa-back-left" value="35" min="0" max="100"
+                                                step="0.5">
+                                        </div>
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-back-width">Width %</label>
+                                            <input type="number" id="ge-pa-back-width" value="30" min="1" max="100"
+                                                step="0.5">
+                                        </div>
+                                        <div class="pe-admin-field-inline">
+                                            <label for="ge-pa-back-height">Height %</label>
+                                            <input type="number" id="ge-pa-back-height" value="30" min="1" max="100"
+                                                step="0.5">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="pe-admin-field">
-                                <label>
-                                    <input type="checkbox" id="ge-active" checked>
-                                    Активен (отображается в редакторе)
-                                </label>
+
+                            <div
+                                style="display:grid; grid-template-columns: 100px 1fr; gap:16px; align-items:center; margin-top:20px;">
+                                <div class="pe-admin-field" style="margin-bottom:0">
+                                    <label for="ge-sort">Порядок</label>
+                                    <input type="number" id="ge-sort" value="0" min="0">
+                                </div>
+                                <div class="pe-admin-field" style="margin-bottom:0; padding-top:20px;">
+                                    <label>
+                                        <input type="checkbox" id="ge-active" checked>
+                                        Активен
+                                    </label>
+                                </div>
                             </div>
-                            <div style="display:flex;gap:8px;margin-top:16px;">
-                                <button class="pe-admin-btn pe-admin-btn--primary" id="ge-save">
-                                    Сохранить
+
+                            <div
+                                style="display:flex; gap:8px; margin-top:24px; padding-top:20px; border-top:1px solid var(--admin-border);">
+                                <button class="pe-admin-btn pe-admin-btn--primary" id="ge-save" style="flex:1">
+                                    Сохранить изменения
                                 </button>
                                 <button class="pe-admin-btn pe-admin-btn--ghost" id="ge-cancel">
                                     Отмена

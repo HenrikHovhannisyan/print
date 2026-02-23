@@ -49,7 +49,7 @@ class Router
     /**
      * Добавить глобальный middleware
      */
-    public function use(callable $middleware): self
+    public function use (callable $middleware): self
     {
         $this->middleware[] = $middleware;
         return $this;
@@ -61,6 +61,16 @@ class Router
     public function dispatch(): void
     {
         $method = $_SERVER['REQUEST_METHOD'];
+
+        // Эмуляция методов (PUT/DELETE) через заголовок или POST-поле
+        $override = $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? $_POST['_method'] ?? null;
+        if ($method === 'POST' && $override) {
+            $emulated = strtoupper($override);
+            if (in_array($emulated, ['PUT', 'DELETE', 'PATCH'])) {
+                $method = $emulated;
+            }
+        }
+
         $uri = $this->getRequestUri();
 
         // Обработка OPTIONS (CORS preflight)
@@ -88,7 +98,8 @@ class Router
             if ($params !== false) {
                 try {
                     call_user_func($route['handler'], $params);
-                } catch (Exception $e) {
+                }
+                catch (Exception $e) {
                     Response::error('Внутренняя ошибка сервера: ' . $e->getMessage(), 500);
                 }
                 return;

@@ -16,8 +16,11 @@ const GarmentManager = (function () {
         '#e8d5b7', '#7f8c8d', '#e91e63', '#00bcd4'
     ];
 
-    let currentGarment = 'tshirt';
+    let currentGarment = null;
     let currentColor = '#ffffff';
+    let currentSide = 'front'; // 'front' | 'back'
+    let currentVariant = null; // 'front' | 'back' | 'both'
+    let pendingGarment = null;
 
     // DOM-элементы
     let garmentImage = null;
@@ -25,6 +28,9 @@ const GarmentManager = (function () {
     let canvasWrap = null;
     let selectorCards = null;
     let colorSwatches = null;
+    let btnSideFront = null;
+    let btnSideBack = null;
+    let priceDisplay = null;
 
     /**
      * Инициализация модуля (асинхронная)
@@ -33,6 +39,9 @@ const GarmentManager = (function () {
         garmentImage = document.getElementById('garment-image');
         garmentOverlay = document.getElementById('garment-overlay');
         canvasWrap = document.getElementById('canvas-wrap');
+        btnSideFront = document.getElementById('btn-side-front');
+        btnSideBack = document.getElementById('btn-side-back');
+        priceDisplay = document.getElementById('current-price-display');
 
         try {
             const apiRes = await ApiClient.listActiveGarments();
@@ -47,10 +56,11 @@ const GarmentManager = (function () {
 
         if (Object.keys(GARMENT_CONFIG).length === 0) {
             console.warn('No garments loaded, falling back to empty config');
-        } else {
-            // Установка первого элемента по умолчанию
-            currentGarment = Object.keys(GARMENT_CONFIG)[0];
         }
+
+        // Прячем рабочую область до выбора одежды
+        const workspace = document.getElementById('workspace');
+        if (workspace) workspace.style.opacity = '0';
 
         // Динамическая генерация карточек одежды
         _buildGarmentCards();
@@ -60,7 +70,9 @@ const GarmentManager = (function () {
 
         _bindEvents();
 
-        // Предзагрузка и удаление фона у всех шаблонов одежды
+        // Не выбираем ничего автоматически. Пользователь должен кликнуть сам.
+
+        // Предзагрузка и удаление фона у всех шаблонов одежды (и фронт, и бэк)
         _preloadAndProcessGarments();
     }
 
@@ -103,21 +115,29 @@ const GarmentManager = (function () {
         Object.keys(GARMENT_CONFIG).forEach(key => {
             const config = GARMENT_CONFIG[key];
 
+            // Обрабатываем перед
             BgRemover.removeBackground(config.image)
                 .then(processedUrl => {
-                    // Обновляем превью-карточку (убираем зелёный фон)
                     const thumb = document.getElementById('garment-thumb-' + key);
-                    if (thumb) {
-                        thumb.src = processedUrl;
-                    }
-
-                    // Если это текущая одежда — обновляем и основное изображение
-                    if (key === currentGarment) {
+                    if (thumb) thumb.src = processedUrl;
+                    if (key === currentGarment && currentSide === 'front') {
                         garmentImage.src = processedUrl;
                         _updatePrintArea();
                     }
                 })
-                .catch(err => console.warn('Ошибка обработки фона (' + key + '):', err));
+                .catch(err => console.warn('Ошибка обработки фона (перед ' + key + '):', err));
+
+            // Обрабатываем зад
+            if (config.imageBack) {
+                BgRemover.removeBackground(config.imageBack)
+                    .then(processedUrl => {
+                        if (key === currentGarment && currentSide === 'back') {
+                            garmentImage.src = processedUrl;
+                            _updatePrintArea();
+                        }
+                    })
+                    .catch(err => console.warn('Ошибка обработки фона (зад ' + key + '):', err));
+            }
         });
     }
 
@@ -141,6 +161,14 @@ const GarmentManager = (function () {
             });
         });
 
+        // Выбор стороны
+        if (btnSideFront) {
+            btnSideFront.addEventListener('click', () => setSide('front'));
+        }
+        if (btnSideBack) {
+            btnSideBack.addEventListener('click', () => setSide('back'));
+        }
+
         // Обновление позиции области печати при ресайзе
         window.addEventListener('resize', _updatePrintArea);
 
@@ -149,31 +177,118 @@ const GarmentManager = (function () {
     }
 
     /**
+     * Обновление состояния кнопок выбора стороны
+     */
+    function _updateSideButtons() {
+        if (btnSideFront) btnSideFront.classList.toggle('pe-btn--active', currentSide === 'front');
+        if (btnSideBack) btnSideBack.classList.toggle('pe-btn--active', currentSide === 'back');
+    }
+
+    /**
      * Установка типа одежды
      * @param {string} type — ключ из GARMENT_CONFIG
      */
     function setGarment(type) {
         if (!GARMENT_CONFIG[type]) return;
+        pendingGarment = type;
 
-        currentGarment = type;
+        // Показываем модальное окно выбора стороны
+        const modal = document.getElementById('side-selection-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+
+            const config = GARMENT_CONFIG[type];
+            const p1 = config.price ? config.price.oneSide : 1500;
+            const p2 = config.price ? config.price.twoSides : 2500;
+
+            document.getElementById('variant-price-front').textContent = p1 + ' ֏';
+            document.getElementById('variant-price-back').textContent = p1 + ' ֏';
+            document.getElementById('variant-price-both').textContent = (p1 + p2) + ' ֏';
+
+            // Проверяем наличие задней стороны для скрытия опций
+            const hasBack = !!config.imageBack;
+            const optBack = document.getElementById('variant-option-back');
+            const optBoth = document.getElementById('variant-option-both');
+
+            if (optBack) optBack.style.display = hasBack ? 'block' : 'none';
+            if (optBoth) optBoth.style.display = hasBack ? 'block' : 'none';
+        } else {
+            // Если модалки нет — просто ставим вариант по умолчанию
+            setVariant('both');
+        }
+    }
+
+    /**
+     * Закрыть модалку выбора стороны
+     */
+    function closeVariantModal() {
+        const modal = document.getElementById('side-selection-modal');
+        if (modal) modal.style.display = 'none';
+        pendingGarment = null;
+    }
+
+    /**
+     * Выбор варианта печати (Фронт / Бэк / Оба)
+     */
+    function setVariant(variant) {
+        if (!pendingGarment && !currentGarment) return;
+
+        const type = pendingGarment || currentGarment;
+        currentVariant = variant;
+
+        if (currentGarment !== type) {
+            currentGarment = type;
+            if (typeof App !== 'undefined' && App.resetSideStates) {
+                App.resetSideStates();
+            }
+        }
+
         const config = GARMENT_CONFIG[type];
+        closeVariantModal();
 
-        // Используем обработанное изображение (без фона) из кэша,
-        // или обрабатываем на лету если кэша нет
-        const cached = BgRemover.getCached(config.image);
+        // Показываем рабочую область
+        const workspace = document.getElementById('workspace');
+        const placeholder = document.getElementById('workspace-placeholder');
+        if (workspace) {
+            workspace.style.opacity = '1';
+            workspace.style.pointerEvents = 'auto';
+        }
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+
+        const priceTag = document.getElementById('price-tag-container');
+        if (priceTag) priceTag.style.display = 'flex';
+
+        // Включаем кнопки действий
+        ['btn-export', 'btn-save-design', 'btn-add-cart', 'btn-clear-canvas'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+        });
+
+        // Устанавливаем сторону по умолчанию для этого варианта
+        if (variant === 'back') {
+            currentSide = 'back';
+        } else {
+            currentSide = 'front';
+        }
+
+        _updateSideButtons();
+        _updateToggleVisibility(config);
+
+        const sideImg = (currentSide === 'back' && config.imageBack) ? config.imageBack : config.image;
+
+        const cached = BgRemover.getCached(sideImg);
         if (cached) {
             garmentImage.src = cached;
         } else {
-            // Пока загружаем оригинал, параллельно обрабатываем фон
-            garmentImage.src = config.image;
-            BgRemover.removeBackground(config.image)
+            garmentImage.src = sideImg;
+            BgRemover.removeBackground(sideImg)
                 .then(processedUrl => {
-                    // Проверяем, что одежда всё ещё та же
                     if (currentGarment === type) {
                         garmentImage.src = processedUrl;
                     }
-                })
-                .catch(err => console.warn('Ошибка обработки фона:', err));
+                });
         }
         garmentImage.alt = config.name;
 
@@ -187,7 +302,6 @@ const GarmentManager = (function () {
 
         // Применяем текущий цвет к новой одежде
         if (currentColor !== '#ffffff') {
-            // Задержка, чтобы изображение успело загрузиться
             garmentImage.addEventListener('load', function onLoad() {
                 garmentImage.removeEventListener('load', onLoad);
                 _applyColorToGarment();
@@ -197,6 +311,78 @@ const GarmentManager = (function () {
         // Обновляем статус
         if (typeof App !== 'undefined' && App.updateStatus) {
             App.updateStatus();
+        }
+    }
+
+    /**
+     * Обновление видимости переключателя стороны в зависимости от выбранного варианта
+     * @param {object} config - Конфигурация текущей одежды
+     */
+    function _updateToggleVisibility(config) {
+        if (!config) return;
+
+        const toggleContainer = document.getElementById('side-toggle-container');
+        if (!toggleContainer) return;
+
+        // Если выбран вариант "Обе стороны", показываем переключатель
+        if (currentVariant === 'both') {
+            toggleContainer.style.display = 'flex';
+        } else {
+            // Если выбран только Фронт или только Бэк — скрываем переключатель
+            toggleContainer.style.display = 'none';
+        }
+    }
+
+    /**
+     * Установка стороны (перед/зад)
+     */
+    async function setSide(side) {
+        if (currentSide === side) return;
+
+        // Если выбран вариант "только перед" или "только зад", не позволяем переключать
+        if (currentVariant === 'front' && side === 'back') return;
+        if (currentVariant === 'back' && side === 'front') return;
+
+        const oldSide = currentSide;
+        currentSide = side;
+
+        // Оповещаем App, чтобы сохранить состояние холста
+        if (typeof App !== 'undefined' && App.onSideChange) {
+            await App.onSideChange(oldSide, side);
+        }
+
+        _updateSideButtons();
+
+        // Обновляем картинку и область печати
+        const config = GARMENT_CONFIG[currentGarment];
+        if (!config) return;
+
+        const sideImg = (currentSide === 'back' && config.imageBack) ? config.imageBack : config.image;
+
+        // Показываем лоадер (понижаем прозрачность)
+        garmentImage.style.opacity = '0.5';
+
+        try {
+            const processedUrl = await BgRemover.removeBackground(sideImg);
+            // Проверяем, не переключил ли пользователь сторону пока мы обрабатывали
+            if (currentSide === side) {
+                garmentImage.src = processedUrl;
+                _applyColorToGarment();
+            }
+        } catch (err) {
+            console.error('Ошибка при смене стороны:', err);
+            if (currentSide === side) {
+                garmentImage.src = sideImg;
+                _applyColorToGarment();
+            }
+        } finally {
+            if (currentSide === side) {
+                garmentImage.style.opacity = '1';
+                _updatePrintArea();
+                if (typeof App !== 'undefined' && App.updateStatus) {
+                    App.updateStatus();
+                }
+            }
         }
     }
 
@@ -227,8 +413,9 @@ const GarmentManager = (function () {
      */
     function _applyColorToGarment() {
         const config = GARMENT_CONFIG[currentGarment];
-        const cachedUrl = BgRemover.getCached(config.image);
-        const srcUrl = cachedUrl || config.image;
+        const sideImg = (currentSide === 'back' && config.imageBack) ? config.imageBack : config.image;
+        const cachedUrl = BgRemover.getCached(sideImg);
+        const srcUrl = cachedUrl || sideImg;
 
         // Если цвет белый — просто показываем оригинал
         if (currentColor === '#ffffff') {
@@ -284,7 +471,7 @@ const GarmentManager = (function () {
             // Получаем реальный коэффициент масштабирования DOM-дерева:
             const scale = (imgRect.width / garmentImage.offsetWidth) || 1;
 
-            const pa = config.printArea;
+            const pa = currentSide === 'back' ? config.printAreaBack : config.printArea;
 
             // Вычисляем реальные, неискаженные зумом координаты:
             const unscaledTop = (imgRect.top - workspaceRect.top) / scale;
@@ -316,6 +503,8 @@ const GarmentManager = (function () {
         return {
             garment: currentGarment,
             color: currentColor,
+            side: currentSide,
+            variant: currentVariant,
             config: GARMENT_CONFIG[currentGarment]
         };
     }
@@ -337,8 +526,11 @@ const GarmentManager = (function () {
     function getProcessedGarmentImage() {
         return new Promise((resolve, reject) => {
             const config = GARMENT_CONFIG[currentGarment];
-            const cached = BgRemover.getCached(config.image);
-            const src = cached || config.image;
+            if (!config) return reject('No garment config');
+
+            const sideImg = (currentSide === 'back' && config.imageBack) ? config.imageBack : config.image;
+            const cached = BgRemover.getCached(sideImg);
+            const src = cached || sideImg;
 
             const img = new Image();
             img.onload = () => resolve(img);
@@ -347,10 +539,15 @@ const GarmentManager = (function () {
         });
     }
 
+
+
     // Public API
     return {
         init,
         setGarment,
+        setVariant,
+        closeVariantModal,
+        setSide,
         setColor,
         getConfig,
         getPrintAreaSize,

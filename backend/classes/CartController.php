@@ -31,9 +31,9 @@ class CartController
         $input = json_decode(file_get_contents('php://input'), true) ?: [];
 
         $sessionId = $input['session_id'] ?? '';
-        $designId = (int) ($input['design_id'] ?? 0);
+        $designId = (int)($input['design_id'] ?? 0);
         $size = $input['size'] ?? 'M';
-        $quantity = max(1, (int) ($input['quantity'] ?? 1));
+        $quantity = max(1, (int)($input['quantity'] ?? 1));
         $notes = $input['notes'] ?? '';
 
         if (empty($sessionId) || $designId === 0) {
@@ -51,22 +51,37 @@ class CartController
         // Проверяем, нет ли уже в корзине с тем же размером
         $existing = $this->db->fetchOne(
             "SELECT id, quantity FROM cart_items WHERE session_id = ? AND design_id = ? AND size = ?",
-            [$sessionId, $designId, $size]
+        [$sessionId, $designId, $size]
         );
 
+        // Получаем актуальную цену из таблицы garments
+        $designData = $this->db->fetchOne(
+            "SELECT d.garment_type, d.is_double_sided FROM designs d WHERE d.id = ?",
+        [$designId]
+        );
+
+        $garment = $this->db->fetchOne(
+            "SELECT price_one_side, price_two_sides FROM garments WHERE slug = ?",
+        [$designData['garment_type']]
+        );
+
+        $price_one = $garment['price_one_side'] ?? 1500;
+        $price_extra = $garment['price_two_sides'] ?? 1000;
+
+        $price = $designData['is_double_sided'] ? ($price_one + $price_extra) : $price_one;
+
         if ($existing) {
-            // Обновляем количество
             $newQty = $existing['quantity'] + $quantity;
             $this->db->execute(
-                "UPDATE cart_items SET quantity = ?, notes = ? WHERE id = ?",
-                [$newQty, $notes, $existing['id']]
+                "UPDATE cart_items SET quantity = ?, notes = ?, price = ? WHERE id = ?",
+            [$newQty, $notes, $price, $existing['id']]
             );
             $itemId = $existing['id'];
-        } else {
-            // Добавляем новый
+        }
+        else {
             $itemId = $this->db->insert(
-                "INSERT INTO cart_items (session_id, design_id, quantity, size, notes) VALUES (?, ?, ?, ?, ?)",
-                [$sessionId, $designId, $quantity, $size, $notes]
+                "INSERT INTO cart_items (session_id, design_id, quantity, size, notes, price) VALUES (?, ?, ?, ?, ?, ?)",
+            [$sessionId, $designId, $quantity, $size, $notes, $price]
             );
         }
 
@@ -107,17 +122,17 @@ class CartController
      */
     public function update(array $params): void
     {
-        $itemId = (int) ($params['id'] ?? 0);
+        $itemId = (int)($params['id'] ?? 0);
         $input = json_decode(file_get_contents('php://input'), true) ?: [];
 
         $sessionId = $input['session_id'] ?? '';
-        $quantity = isset($input['quantity']) ? max(1, (int) $input['quantity']) : null;
+        $quantity = isset($input['quantity']) ? max(1, (int)$input['quantity']) : null;
         $size = $input['size'] ?? null;
         $notes = $input['notes'] ?? null;
 
         $item = $this->db->fetchOne(
             "SELECT * FROM cart_items WHERE id = ? AND session_id = ?",
-            [$itemId, $sessionId]
+        [$itemId, $sessionId]
         );
 
         if (!$item) {
@@ -162,12 +177,12 @@ class CartController
      */
     public function remove(array $params): void
     {
-        $itemId = (int) ($params['id'] ?? 0);
+        $itemId = (int)($params['id'] ?? 0);
         $sessionId = $_GET['session_id'] ?? '';
 
         $item = $this->db->fetchOne(
             "SELECT * FROM cart_items WHERE id = ? AND session_id = ?",
-            [$itemId, $sessionId]
+        [$itemId, $sessionId]
         );
 
         if (!$item) {
@@ -208,12 +223,13 @@ class CartController
     private function getCartItems(string $sessionId): array
     {
         return $this->db->fetchAll(
-            "SELECT ci.*, d.garment_type, d.garment_color, d.preview_path, d.highres_path, d.canvas_json, d.svg_data, d.title
+            "SELECT ci.*, d.garment_type, d.garment_color, d.preview_path, d.preview_back_path, 
+                    d.highres_path, d.canvas_json, d.is_double_sided, d.title
              FROM cart_items ci
              JOIN designs d ON d.id = ci.design_id
              WHERE ci.session_id = ?
              ORDER BY ci.created_at DESC",
-            [$sessionId]
+        [$sessionId]
         );
     }
 }

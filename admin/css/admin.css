@@ -1066,3 +1066,62 @@ body {
         max-height: 95vh;
     }
 }
+
+/* ============================================
+   Tabs System
+   ============================================ */
+.pe-admin-tabs {
+    display: flex;
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 3px;
+    border-radius: var(--admin-radius-sm);
+    margin-bottom: 20px;
+    border: 1px solid var(--admin-border);
+}
+
+.pe-admin-tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: var(--admin-text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all var(--admin-transition);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pe-admin-tab-btn:hover {
+    color: var(--admin-text);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.pe-admin-tab-btn.active {
+    background: var(--admin-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pe-admin-tab-pane {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.pe-admin-tab-pane.active {
+    display: block;
+}
+
+.pe-admin-price-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(124, 92, 224, 0.05);
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid rgba(124, 92, 224, 0.2);
+    margin-bottom: 20px;
+}

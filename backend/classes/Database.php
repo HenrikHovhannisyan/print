@@ -101,6 +101,14 @@ class Database
     }
 
     /**
+     * Получить ID последней вставленной записи
+     */
+    public function lastInsertId(): int
+    {
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
      * Начать транзакцию
      */
     public function beginTransaction(): void
@@ -148,10 +156,15 @@ class Database
                 garment_type TEXT NOT NULL DEFAULT 'tshirt',
                 garment_color TEXT DEFAULT '#ffffff',
                 canvas_json TEXT,
+                canvas_json_back TEXT,
                 svg_data TEXT,
+                svg_data_back TEXT,
                 preview_path TEXT,
+                preview_back_path TEXT,
                 highres_path TEXT,
+                highres_back_path TEXT,
                 print_area_json TEXT,
+                is_double_sided INTEGER DEFAULT 0,
                 title TEXT DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -194,6 +207,7 @@ class Database
                 customer_address TEXT DEFAULT '',
                 status TEXT DEFAULT 'new',
                 total_items INTEGER DEFAULT 0,
+                total_price INTEGER DEFAULT 0,
                 notes TEXT DEFAULT '',
                 admin_notes TEXT DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -209,10 +223,15 @@ class Database
                 garment_color TEXT DEFAULT '#ffffff',
                 size TEXT DEFAULT 'M',
                 quantity INTEGER DEFAULT 1,
+                price INTEGER DEFAULT 0,
                 preview_path TEXT,
+                preview_back_path TEXT,
                 highres_path TEXT,
+                highres_back_path TEXT,
                 canvas_json TEXT,
+                canvas_json_back TEXT,
                 svg_data TEXT,
+                svg_data_back TEXT,
                 notes TEXT DEFAULT '',
                 FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
             );
@@ -231,12 +250,19 @@ class Database
                 slug TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
                 image_path TEXT NOT NULL,
+                image_back_path TEXT,
                 icon_path TEXT DEFAULT '',
                 print_area_top REAL DEFAULT 30,
                 print_area_left REAL DEFAULT 35,
                 print_area_width REAL DEFAULT 30,
                 print_area_height REAL DEFAULT 30,
+                print_area_back_top REAL DEFAULT 30,
+                print_area_back_left REAL DEFAULT 35,
+                print_area_back_width REAL DEFAULT 30,
+                print_area_back_height REAL DEFAULT 30,
                 available_colors TEXT DEFAULT '[]',
+                price_one_side INTEGER DEFAULT 1500,
+                price_two_sides INTEGER DEFAULT 2500,
                 sort_order INTEGER DEFAULT 0,
                 is_active INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -251,6 +277,36 @@ class Database
             CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
             CREATE INDEX IF NOT EXISTS idx_garments_active ON garments(is_active, sort_order);
         ");
+
+        // Миграция: Добавление новых колонок, если их нет
+        try {
+            $columns = $this->fetchAll("PRAGMA table_info(garments)");
+            $columnNames = array_map(function ($c) {
+                return $c['name'];
+            }, $columns);
+
+            $newColumns = [
+                'image_back_path' => 'TEXT',
+                'print_area_back_top' => 'REAL DEFAULT 30',
+                'print_area_back_left' => 'REAL DEFAULT 35',
+                'print_area_back_width' => 'REAL DEFAULT 30',
+                'print_area_back_height' => 'REAL DEFAULT 30',
+                'price_one_side' => 'INTEGER DEFAULT 0',
+                'price_two_sides' => 'INTEGER DEFAULT 0'
+            ];
+
+            foreach ($newColumns as $col => $type) {
+                if (!in_array($col, $columnNames)) {
+                    $this->pdo->exec("ALTER TABLE garments ADD COLUMN $col $type");
+                }
+            }
+            // Установка дефолтных цен для существующих записей
+            $this->pdo->exec("UPDATE garments SET price_one_side = 1500 WHERE price_one_side = 0 OR price_one_side IS NULL");
+            $this->pdo->exec("UPDATE garments SET price_two_sides = 2500 WHERE price_two_sides = 0 OR price_two_sides IS NULL");
+        }
+        catch (Exception $e) {
+        // Игнорируем ошибки миграции
+        }
 
         // Создаём администратора по умолчанию, если нет ни одного
         $adminCount = $this->fetchOne("SELECT COUNT(*) as cnt FROM admins");

@@ -39,14 +39,25 @@ class GarmentController
                 'id' => (int) $g['id'],
                 'name' => $g['name'],
                 'image' => $g['image_path'],
-                'icon' => $g['icon_path'] ?: $g['image_path'],
+                'imageBack' => $g['image_back_path'] ?? '',
+                'icon' => ($g['icon_path'] ?? '') ?: $g['image_path'],
                 'printArea' => [
-                    'top' => (float) $g['print_area_top'],
-                    'left' => (float) $g['print_area_left'],
-                    'width' => (float) $g['print_area_width'],
-                    'height' => (float) $g['print_area_height'],
+                    'top' => (float) ($g['print_area_top'] ?? 30),
+                    'left' => (float) ($g['print_area_left'] ?? 35),
+                    'width' => (float) ($g['print_area_width'] ?? 30),
+                    'height' => (float) ($g['print_area_height'] ?? 30),
                 ],
-                'colors' => json_decode($g['available_colors'], true) ?: [],
+                'printAreaBack' => [
+                    'top' => (float) ($g['print_area_back_top'] ?? 30),
+                    'left' => (float) ($g['print_area_back_left'] ?? 35),
+                    'width' => (float) ($g['print_area_back_width'] ?? 30),
+                    'height' => (float) ($g['print_area_back_height'] ?? 30),
+                ],
+                'price' => [
+                    'oneSide' => (int) ($g['price_one_side'] ?? 1500),
+                    'twoSides' => (int) ($g['price_two_sides'] ?? 2500),
+                ],
+                'colors' => json_decode($g['available_colors'] ?? '[]', true) ?: [],
             ];
         }
 
@@ -134,6 +145,17 @@ class GarmentController
             }
         }
 
+        // Обработка ЗАДНЕГО изображения
+        $imageBackPath = $input['image_back_path'] ?? '';
+        if (!empty($_FILES['image_back']) && $_FILES['image_back']['error'] === UPLOAD_ERR_OK) {
+            try {
+                $fileInfo = $this->fileManager->saveUploadedFile($_FILES['image_back'], 'originals');
+                $imageBackPath = $fileInfo['path'];
+            } catch (Exception $e) {
+                // Опционально
+            }
+        }
+
         if (empty($imagePath)) {
             Response::error('Изображение одежды обязательно (image_path или файл image)', 400);
             return;
@@ -146,7 +168,6 @@ class GarmentController
                 $fileInfo = $this->fileManager->saveUploadedFile($_FILES['icon'], 'originals');
                 $iconPath = $fileInfo['path'];
             } catch (Exception $e) {
-                // Иконка не критична — продолжаем
                 $iconPath = '';
             }
         }
@@ -156,26 +177,35 @@ class GarmentController
             $colors = json_decode($colors, true);
         }
         if (!is_array($colors)) {
-            $colors = ['#ffffff', '#1a1a2e', '#cccccc', '#e74c3c', '#3498db', '#2ecc71'];
+            $colors = ['#ffffff', '#111111', '#cccccc', '#e74c3c', '#3498db', '#2ecc71'];
         }
 
         $maxOrder = $this->db->fetchOne("SELECT MAX(sort_order) as max_order FROM garments");
         $sortOrder = (int) ($input['sort_order'] ?? (($maxOrder['max_order'] ?? 0) + 1));
 
         $id = $this->db->insert(
-            "INSERT INTO garments (slug, name, image_path, icon_path, 
+            "INSERT INTO garments (slug, name, image_path, image_back_path, icon_path, 
              print_area_top, print_area_left, print_area_width, print_area_height,
+             print_area_back_top, print_area_back_left, print_area_back_width, print_area_back_height,
+             price_one_side, price_two_sides,
              available_colors, sort_order, is_active)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $slug,
                 $name,
                 $imagePath,
+                $imageBackPath,
                 $iconPath,
                 (float) ($input['print_area_top'] ?? 30),
                 (float) ($input['print_area_left'] ?? 35),
                 (float) ($input['print_area_width'] ?? 30),
                 (float) ($input['print_area_height'] ?? 30),
+                (float) ($input['print_area_back_top'] ?? 30),
+                (float) ($input['print_area_back_left'] ?? 35),
+                (float) ($input['print_area_back_width'] ?? 30),
+                (float) ($input['print_area_back_height'] ?? 30),
+                (int) ($input['price_one_side'] ?? 0),
+                (int) ($input['price_two_sides'] ?? 0),
                 json_encode($colors),
                 $sortOrder,
                 (int) ($input['is_active'] ?? 1),
@@ -221,6 +251,16 @@ class GarmentController
             }
         }
 
+        // Обработка ЗАДНЕГО изображения
+        if (!empty($_FILES['image_back']) && $_FILES['image_back']['error'] === UPLOAD_ERR_OK) {
+            try {
+                $fileInfo = $this->fileManager->saveUploadedFile($_FILES['image_back'], 'originals');
+                $input['image_back_path'] = $fileInfo['path'];
+            } catch (Exception $e) {
+                // Не критично
+            }
+        }
+
         // Иконка
         if (!empty($_FILES['icon']) && $_FILES['icon']['error'] === UPLOAD_ERR_OK) {
             try {
@@ -238,11 +278,18 @@ class GarmentController
             'name',
             'slug',
             'image_path',
+            'image_back_path',
             'icon_path',
             'print_area_top',
             'print_area_left',
             'print_area_width',
             'print_area_height',
+            'print_area_back_top',
+            'print_area_back_left',
+            'print_area_back_width',
+            'print_area_back_height',
+            'price_one_side',
+            'price_two_sides',
             'sort_order',
             'is_active',
         ];

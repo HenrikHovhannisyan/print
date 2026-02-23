@@ -42,11 +42,12 @@ class OrderController
 
         // Проверяем наличие позиций в корзине
         $cartItems = $this->db->fetchAll(
-            "SELECT ci.*, d.garment_type, d.garment_color, d.preview_path, d.highres_path
+            "SELECT ci.*, d.garment_type, d.garment_color, d.preview_path, d.preview_back_path, 
+                    d.highres_path, d.highres_back_path, d.canvas_json, d.canvas_json_back, d.svg_data, d.svg_data_back
              FROM cart_items ci
              JOIN designs d ON d.id = ci.design_id
              WHERE ci.session_id = ?",
-            [$sessionId]
+        [$sessionId]
         );
 
         if (empty($cartItems)) {
@@ -61,33 +62,40 @@ class OrderController
             $orderNumber = 'PE-' . date('ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
 
             $totalItems = array_sum(array_column($cartItems, 'quantity'));
+            $totalPrice = array_reduce($cartItems, function ($carry, $item) {
+                return $carry + ($item['price'] * $item['quantity']);
+            }, 0);
 
             // Создаём заказ
             $orderId = $this->db->insert(
                 "INSERT INTO orders (order_number, session_id, customer_name, customer_email, 
-                 customer_phone, customer_address, status, total_items, notes)
-                 VALUES (?, ?, ?, ?, ?, ?, 'new', ?, ?)",
-                [
-                    $orderNumber,
-                    $sessionId,
-                    $input['customer_name'] ?? '',
-                    $input['customer_email'] ?? '',
-                    $input['customer_phone'] ?? '',
-                    $input['customer_address'] ?? '',
-                    $totalItems,
-                    $input['notes'] ?? '',
-                ]
+                 customer_phone, customer_address, status, total_items, total_price, notes)
+                 VALUES (?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)",
+            [
+                $orderNumber,
+                $sessionId,
+                $input['customer_name'] ?? '',
+                $input['customer_email'] ?? '',
+                $input['customer_phone'] ?? '',
+                $input['customer_address'] ?? '',
+                $totalItems,
+                $totalPrice,
+                $input['notes'] ?? '',
+            ]
             );
 
             // Переносим позиции корзины в позиции заказа
             foreach ($cartItems as $item) {
                 // Изолируем файлы: копируем их из папок дизайнов в отдельную папку заказов
                 $orderPreview = $item['preview_path'] ? $this->fileManager->copyFile($item['preview_path'], 'orders') : null;
+                $orderPreviewBack = $item['preview_back_path'] ? $this->fileManager->copyFile($item['preview_back_path'], 'orders') : null;
                 $orderHighres = $item['highres_path'] ? $this->fileManager->copyFile($item['highres_path'], 'orders') : null;
+                $orderHighresBack = $item['highres_back_path'] ? $this->fileManager->copyFile($item['highres_back_path'], 'orders') : null;
 
-                // Изолируем ассеты (картинки), используемые в дизайне
                 $canvasJson = $item['canvas_json'] ?? null;
+                $canvasJsonBack = $item['canvas_json_back'] ?? null;
                 $svgData = $item['svg_data'] ?? null;
+                $svgDataBack = $item['svg_data_back'] ?? null;
 
                 $assets = $this->db->fetchAll("SELECT * FROM design_assets WHERE design_id = ?", [$item['design_id']]);
                 foreach ($assets as $asset) {
@@ -97,29 +105,28 @@ class OrderController
                         if ($newAssetPath) {
                             if ($canvasJson)
                                 $canvasJson = str_replace($oldAssetPath, $newAssetPath, $canvasJson);
+                            if ($canvasJsonBack)
+                                $canvasJsonBack = str_replace($oldAssetPath, $newAssetPath, $canvasJsonBack);
                             if ($svgData)
                                 $svgData = str_replace($oldAssetPath, $newAssetPath, $svgData);
+                            if ($svgDataBack)
+                                $svgDataBack = str_replace($oldAssetPath, $newAssetPath, $svgDataBack);
                         }
                     }
                 }
 
                 $this->db->insert(
                     "INSERT INTO order_items (order_id, design_id, garment_type, garment_color, 
-                     size, quantity, preview_path, highres_path, canvas_json, svg_data, notes)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    [
-                        $orderId,
-                        $item['design_id'],
-                        $item['garment_type'],
-                        $item['garment_color'],
-                        $item['size'],
-                        $item['quantity'],
-                        $orderPreview,
-                        $orderHighres,
-                        $canvasJson,
-                        $svgData,
-                        $item['notes'] ?? '',
-                    ]
+                     size, quantity, price, preview_path, preview_back_path, highres_path, highres_back_path, 
+                     canvas_json, canvas_json_back, svg_data, svg_data_back, notes)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    $orderId, $item['design_id'], $item['garment_type'], $item['garment_color'],
+                    $item['size'], $item['quantity'], $item['price'],
+                    $orderPreview, $orderPreviewBack, $orderHighres, $orderHighresBack,
+                    $canvasJson, $canvasJsonBack, $svgData, $svgDataBack,
+                    $item['notes'] ?? ''
+                ]
                 );
             }
 
@@ -133,7 +140,8 @@ class OrderController
 
             Response::success($order, 'Заказ оформлен', 201);
 
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             $this->db->rollback();
             Response::error('Ошибка оформления заказа: ' . $e->getMessage(), 500);
         }
@@ -145,7 +153,7 @@ class OrderController
      */
     public function get(array $params): void
     {
-        $orderId = (int) ($params['id'] ?? 0);
+        $orderId = (int)($params['id'] ?? 0);
 
         $order = $this->getOrderWithItems($orderId);
         if (!$order) {
@@ -172,7 +180,7 @@ class OrderController
 
         $order['items'] = $this->db->fetchAll(
             "SELECT * FROM order_items WHERE order_id = ?",
-            [$order['id']]
+        [$order['id']]
         );
 
         Response::success($order);
@@ -192,13 +200,13 @@ class OrderController
 
         $orders = $this->db->fetchAll(
             "SELECT * FROM orders WHERE customer_email = ? ORDER BY created_at DESC",
-            [$email]
+        [$email]
         );
 
         foreach ($orders as &$order) {
             $order['items'] = $this->db->fetchAll(
                 "SELECT * FROM order_items WHERE order_id = ?",
-                [$order['id']]
+            [$order['id']]
             );
         }
 
@@ -212,8 +220,8 @@ class OrderController
     public function listAll(array $params): void
     {
         $status = $_GET['status'] ?? null;
-        $page = max(1, (int) ($_GET['page'] ?? 1));
-        $limit = min(100, max(1, (int) ($_GET['limit'] ?? 20)));
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = min(100, max(1, (int)($_GET['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
         $where = '';
@@ -229,7 +237,7 @@ class OrderController
             "SELECT COUNT(*) as total FROM orders o $where",
             $queryParams
         );
-        $total = (int) $countRow['total'];
+        $total = (int)$countRow['total'];
 
         // Заказы
         $queryParams[] = $limit;
@@ -259,7 +267,7 @@ class OrderController
      */
     public function update(array $params): void
     {
-        $orderId = (int) ($params['id'] ?? 0);
+        $orderId = (int)($params['id'] ?? 0);
         $input = json_decode(file_get_contents('php://input'), true) ?: [];
 
         $order = $this->db->fetchOne("SELECT * FROM orders WHERE id = ?", [$orderId]);
@@ -311,7 +319,7 @@ class OrderController
      */
     public function delete(array $params): void
     {
-        $orderId = (int) ($params['id'] ?? 0);
+        $orderId = (int)($params['id'] ?? 0);
 
         $order = $this->db->fetchOne("SELECT * FROM orders WHERE id = ?", [$orderId]);
         if (!$order) {
@@ -345,11 +353,11 @@ class OrderController
         );
 
         Response::success([
-            'total_orders' => (int) $totalOrders,
-            'new_orders' => (int) $newOrders,
-            'processing_orders' => (int) $processingOrders,
-            'done_orders' => (int) $doneOrders,
-            'total_designs' => (int) $totalDesigns,
+            'total_orders' => (int)$totalOrders,
+            'new_orders' => (int)$newOrders,
+            'processing_orders' => (int)$processingOrders,
+            'done_orders' => (int)$doneOrders,
+            'total_designs' => (int)$totalDesigns,
             'recent_orders' => $recentOrders,
             'status_counts' => $statusCounts,
         ]);
@@ -370,7 +378,7 @@ class OrderController
                     canvas_json IS NOT NULL as has_canvas
              FROM order_items 
              WHERE order_id = ?",
-            [$orderId]
+        [$orderId]
         );
 
         return $order;

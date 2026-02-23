@@ -90,6 +90,9 @@ const CanvasManager = (function () {
                 _saveState();
             }
             _updateObjectCount();
+            if (typeof App !== 'undefined' && App.updatePrice) {
+                App.updatePrice();
+            }
         });
 
         canvas.on('object:removed', function () {
@@ -97,6 +100,9 @@ const CanvasManager = (function () {
                 _saveState();
             }
             _updateObjectCount();
+            if (typeof App !== 'undefined' && App.updatePrice) {
+                App.updatePrice();
+            }
         });
 
         // Контекстное меню (правый клик)

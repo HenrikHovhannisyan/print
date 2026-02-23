@@ -622,6 +622,7 @@ const AdminApp = (function () {
     // =============================================
 
     let editingGarmentId = null;
+    let editingActiveSide = 'front'; // 'front' or 'back'
 
     async function loadGarments() {
         const result = await apiFetch('/admin/garments');
@@ -640,6 +641,11 @@ const AdminApp = (function () {
 
         grid.innerHTML = garments.map(g => {
             const inactiveClass = g.is_active ? '' : 'pe-admin-garment-card--inactive';
+            const priceHtml = g.price_one_side ? `
+                <div style="font-size:12px; margin-top:4px; color:var(--admin-primary); font-weight:600;">
+                    ${g.price_one_side} ֏ / ${g.price_two_sides} ֏
+                </div>
+            ` : '';
             return `
     <div class="pe-admin-garment-card ${inactiveClass}">
                     <div class="pe-admin-garment-card__img-wrap">
@@ -654,6 +660,7 @@ const AdminApp = (function () {
                     <div class="pe-admin-garment-card__body">
                         <div class="pe-admin-garment-card__name">${escHtml(g.name)}</div>
                         <div class="pe-admin-garment-card__slug">${escHtml(g.slug)}</div>
+                        ${priceHtml}
                         <div class="pe-admin-garment-card__actions">
                             <button class="pe-admin-btn pe-admin-btn--ghost pe-admin-btn--sm"
                                     onclick="AdminApp.editGarment(${g.id})">
@@ -690,13 +697,36 @@ const AdminApp = (function () {
         // Save button
         document.getElementById('ge-save').addEventListener('click', saveGarment);
 
+        // Tabs Logic
+        document.querySelectorAll('.pe-admin-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const side = btn.dataset.tab;
+                switchEditorTab(side);
+            });
+        });
+
         // Image preview on file select
         document.getElementById('ge-image').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    document.getElementById('ge-preview-img').src = ev.target.result;
+                    if (editingActiveSide === 'front') {
+                        document.getElementById('ge-preview-img').src = ev.target.result;
+                    }
+                    updatePreviewArea();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        document.getElementById('ge-image-back').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    if (editingActiveSide === 'back') {
+                        document.getElementById('ge-preview-img').src = ev.target.result;
+                    }
                     updatePreviewArea();
                 };
                 reader.readAsDataURL(file);
@@ -704,44 +734,93 @@ const AdminApp = (function () {
         });
 
         // Live update preview area on input change
-        ['ge-pa-top', 'ge-pa-left', 'ge-pa-width', 'ge-pa-height'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updatePreviewArea);
+        const areaInputs = ['ge-pa-top', 'ge-pa-left', 'ge-pa-width', 'ge-pa-height',
+            'ge-pa-back-top', 'ge-pa-back-left', 'ge-pa-back-width', 'ge-pa-back-height'];
+
+        areaInputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', updatePreviewArea);
         });
 
         // Drag support for preview area
         initPreviewAreaDrag();
     }
 
+    function switchEditorTab(side) {
+        editingActiveSide = side;
+
+        // Buttons
+        document.querySelectorAll('.pe-admin-tab-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.tab === side);
+        });
+
+        // Panes
+        document.querySelectorAll('.pe-admin-tab-pane').forEach(p => {
+            p.classList.toggle('active', p.id === 'tab-' + side);
+        });
+
+        // Preview Image
+        const previewImg = document.getElementById('ge-preview-img');
+        if (side === 'front') {
+            const fileInput = document.getElementById('ge-image');
+            if (fileInput.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = (e) => previewImg.src = e.target.result;
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                const path = document.getElementById('ge-image-path').value;
+                previewImg.src = path ? '/' + path : '';
+            }
+        } else {
+            const fileInputBack = document.getElementById('ge-image-back');
+            if (fileInputBack.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = (e) => previewImg.src = e.target.result;
+                reader.readAsDataURL(fileInputBack.files[0]);
+            } else {
+                const path = document.getElementById('ge-image-back-path').value;
+                previewImg.src = path ? '/' + path : '';
+            }
+        }
+
+        setTimeout(updatePreviewArea, 50);
+    }
+
     function openGarmentModal(garment) {
         editingGarmentId = garment ? garment.id : null;
+        editingActiveSide = 'front';
 
         document.getElementById('garment-modal-title').textContent =
             garment ? 'Редактировать: ' + garment.name : 'Новый тип одежды';
 
         document.getElementById('ge-name').value = garment ? garment.name : '';
         document.getElementById('ge-slug').value = garment ? garment.slug : '';
+
         document.getElementById('ge-pa-top').value = garment ? garment.print_area_top : 30;
         document.getElementById('ge-pa-left').value = garment ? garment.print_area_left : 35;
         document.getElementById('ge-pa-width').value = garment ? garment.print_area_width : 30;
         document.getElementById('ge-pa-height').value = garment ? garment.print_area_height : 30;
+
+        document.getElementById('ge-pa-back-top').value = garment ? (garment.print_area_back_top || 30) : 30;
+        document.getElementById('ge-pa-back-left').value = garment ? (garment.print_area_back_left || 35) : 35;
+        document.getElementById('ge-pa-back-width').value = garment ? (garment.print_area_back_width || 30) : 30;
+        document.getElementById('ge-pa-back-height').value = garment ? (garment.print_area_back_height || 30) : 30;
+
+        document.getElementById('ge-price-one').value = garment ? (garment.price_one_side || 0) : 0;
+        document.getElementById('ge-price-two').value = garment ? (garment.price_two_sides || 0) : 0;
+
         document.getElementById('ge-sort').value = garment ? garment.sort_order : 0;
         document.getElementById('ge-active').checked = garment ? !!garment.is_active : true;
+
         document.getElementById('ge-image-path').value = garment ? garment.image_path : '';
+        document.getElementById('ge-image-back-path').value = garment ? (garment.image_back_path || '') : '';
         document.getElementById('ge-image').value = '';
+        document.getElementById('ge-image-back').value = '';
 
-        // Preview image
-        const previewImg = document.getElementById('ge-preview-img');
-        if (garment && garment.image_path) {
-            previewImg.src = '/' + garment.image_path;
-        } else {
-            previewImg.src = '';
-        }
+        // Tabs
+        switchEditorTab('front');
 
-        document.getElementById('garment-modal').style.display = '';
-
-        // Update preview after image loads
-        previewImg.onload = () => updatePreviewArea();
-        setTimeout(updatePreviewArea, 100);
+        document.getElementById('garment-modal').style.display = 'flex';
     }
 
     async function editGarment(garmentId) {
@@ -760,7 +839,9 @@ const AdminApp = (function () {
         }
 
         const fileInput = document.getElementById('ge-image');
+        const fileInputBack = document.getElementById('ge-image-back');
         const hasNewFile = fileInput.files.length > 0;
+        const hasNewFileBack = fileInputBack.files.length > 0;
         const existingPath = document.getElementById('ge-image-path').value;
 
         if (!hasNewFile && !existingPath && !editingGarmentId) {
@@ -769,25 +850,37 @@ const AdminApp = (function () {
         }
 
         // Если есть файл — используем FormData
-        if (hasNewFile) {
+        if (hasNewFile || hasNewFileBack) {
             const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
+            if (hasNewFile) formData.append('image', fileInput.files[0]);
+            if (hasNewFileBack) formData.append('image_back', fileInputBack.files[0]);
+
             formData.append('name', name);
             formData.append('slug', slug);
             formData.append('print_area_top', document.getElementById('ge-pa-top').value);
             formData.append('print_area_left', document.getElementById('ge-pa-left').value);
             formData.append('print_area_width', document.getElementById('ge-pa-width').value);
             formData.append('print_area_height', document.getElementById('ge-pa-height').value);
+
+            formData.append('print_area_back_top', document.getElementById('ge-pa-back-top').value);
+            formData.append('print_area_back_left', document.getElementById('ge-pa-back-left').value);
+            formData.append('print_area_back_width', document.getElementById('ge-pa-back-width').value);
+            formData.append('print_area_back_height', document.getElementById('ge-pa-back-height').value);
+
+            formData.append('price_one_side', document.getElementById('ge-price-one').value);
+            formData.append('price_two_sides', document.getElementById('ge-price-two').value);
+
             formData.append('sort_order', document.getElementById('ge-sort').value);
             formData.append('is_active', document.getElementById('ge-active').checked ? 1 : 0);
 
             const endpoint = editingGarmentId
-                ? `/admin/garments/${editingGarmentId}` 
+                ? `/admin/garments/${editingGarmentId}`
                 : '/admin/garments';
-            const method = editingGarmentId ? 'PUT' : 'POST';
+            // Для FormData с картинками используем POST даже для обновления (Legacy compatibility/PHP quirks)
+            // Но мы можем попробовать PUT если бэкенд поймет multipart/form-data
+            const method = editingGarmentId ? 'POST' : 'POST';
+            if (editingGarmentId) formData.append('_method', 'PUT'); // Эмуляция PUT
 
-            // Нельзя PUT с FormData через стандартный apiFetch
-            // Используем прямой fetch
             try {
                 const res = await fetch('/api' + endpoint, {
                     method,
@@ -813,10 +906,17 @@ const AdminApp = (function () {
                 name,
                 slug,
                 image_path: existingPath,
+                image_back_path: document.getElementById('ge-image-back-path').value,
                 print_area_top: parseFloat(document.getElementById('ge-pa-top').value),
                 print_area_left: parseFloat(document.getElementById('ge-pa-left').value),
                 print_area_width: parseFloat(document.getElementById('ge-pa-width').value),
                 print_area_height: parseFloat(document.getElementById('ge-pa-height').value),
+                print_area_back_top: parseFloat(document.getElementById('ge-pa-back-top').value),
+                print_area_back_left: parseFloat(document.getElementById('ge-pa-back-left').value),
+                print_area_back_width: parseFloat(document.getElementById('ge-pa-back-width').value),
+                print_area_back_height: parseFloat(document.getElementById('ge-pa-back-height').value),
+                price_one_side: parseInt(document.getElementById('ge-price-one').value),
+                price_two_sides: parseInt(document.getElementById('ge-price-two').value),
                 sort_order: parseInt(document.getElementById('ge-sort').value),
                 is_active: document.getElementById('ge-active').checked ? 1 : 0,
             };
@@ -860,10 +960,12 @@ const AdminApp = (function () {
      */
     function updatePreviewArea() {
         const area = document.getElementById('ge-preview-area');
-        const top = parseFloat(document.getElementById('ge-pa-top').value) || 0;
-        const left = parseFloat(document.getElementById('ge-pa-left').value) || 0;
-        const width = parseFloat(document.getElementById('ge-pa-width').value) || 0;
-        const height = parseFloat(document.getElementById('ge-pa-height').value) || 0;
+        const prefix = editingActiveSide === 'back' ? 'ge-pa-back-' : 'ge-pa-';
+
+        const top = parseFloat(document.getElementById(prefix + 'top').value) || 0;
+        const left = parseFloat(document.getElementById(prefix + 'left').value) || 0;
+        const width = parseFloat(document.getElementById(prefix + 'width').value) || 0;
+        const height = parseFloat(document.getElementById(prefix + 'height').value) || 0;
 
         area.style.top = top + '%';
         area.style.left = left + '%';
@@ -883,24 +985,30 @@ const AdminApp = (function () {
         area.addEventListener('mousedown', (e) => {
             e.preventDefault();
             isDragging = true;
-            const wrapRect = wrap.getBoundingClientRect();
+            const prefix = editingActiveSide === 'back' ? 'ge-pa-back-' : 'ge-pa-';
+
             startX = e.clientX;
             startY = e.clientY;
-            startLeft = parseFloat(document.getElementById('ge-pa-left').value);
-            startTop = parseFloat(document.getElementById('ge-pa-top').value);
+            startLeft = parseFloat(document.getElementById(prefix + 'left').value);
+            startTop = parseFloat(document.getElementById(prefix + 'top').value);
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             const wrapRect = wrap.getBoundingClientRect();
+            const prefix = editingActiveSide === 'back' ? 'ge-pa-back-' : 'ge-pa-';
+
             const dx = ((e.clientX - startX) / wrapRect.width) * 100;
             const dy = ((e.clientY - startY) / wrapRect.height) * 100;
 
-            const newLeft = Math.max(0, Math.min(100 - parseFloat(document.getElementById('ge-pa-width').value), startLeft + dx));
-            const newTop = Math.max(0, Math.min(100 - parseFloat(document.getElementById('ge-pa-height').value), startTop + dy));
+            const widthVal = parseFloat(document.getElementById(prefix + 'width').value);
+            const heightVal = parseFloat(document.getElementById(prefix + 'height').value);
 
-            document.getElementById('ge-pa-left').value = newLeft.toFixed(1);
-            document.getElementById('ge-pa-top').value = newTop.toFixed(1);
+            const newLeft = Math.max(0, Math.min(100 - widthVal, startLeft + dx));
+            const newTop = Math.max(0, Math.min(100 - heightVal, startTop + dy));
+
+            document.getElementById(prefix + 'left').value = newLeft.toFixed(1);
+            document.getElementById(prefix + 'top').value = newTop.toFixed(1);
             updatePreviewArea();
         });
 

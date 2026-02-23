@@ -67,15 +67,15 @@
                 <button class="pe-btn pe-btn--icon" id="btn-clear-canvas" data-tooltip="Очистить всё" disabled>
                     <i class="ri-delete-bin-line"></i>
                 </button>
-                <button class="pe-btn" id="btn-export" title="Скачать как картинку">
+                <button class="pe-btn" id="btn-export" title="Скачать как картинку" disabled>
                     <i class="ri-download-2-line"></i>
                     Экспорт
                 </button>
-                <button class="pe-btn pe-btn--primary" id="btn-save-design">
+                <button class="pe-btn pe-btn--primary" id="btn-save-design" disabled>
                     <i class="ri-save-line"></i>
                     Сохранить
                 </button>
-                <button class="pe-btn pe-btn--success" id="btn-add-cart">
+                <button class="pe-btn pe-btn--success" id="btn-add-cart" disabled>
                     <i class="ri-add-circle-line"></i>
                     В корзину
                 </button>
@@ -243,17 +243,50 @@
                         <input type="file" id="image-file-input" accept="image/*" style="display:none;">
                     </div>
                 </div>
-
             </aside>
 
 
-            <!-- === CANVAS AREA === -->
-            <main class="pe-canvas-area" id="canvas-area">
-                <div class="pe-workspace" id="workspace">
+            <!-- === CANVAS AREA ===== -->
+            <main class="pe-canvas-area" id="canvas-area" style="position:relative;">
+                <!-- Заглушка до выбора одежды -->
+                <div id="workspace-placeholder"
+                    style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; background:var(--color-bg-area); text-align:center; padding:20px;">
+                    <div
+                        style="width:80px; height:80px; background:rgba(108, 92, 231, 0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
+                        <i class="ri-t-shirt-line" style="font-size:40px; color:var(--color-primary);"></i>
+                    </div>
+                    <h2 style="font-weight:800; margin-bottom:8px;">Готовы создать свой дизайн?</h2>
+                    <p style="color:var(--color-text-secondary); max-width:300px;">Выберите одежду из меню слева, чтобы
+                        начать работу</p>
+                </div>
+
+                <div class="pe-workspace" id="workspace"
+                    style="opacity:0; pointer-events:none; transition: opacity 0.4s ease;">
                     <div class="pe-workspace__garment" id="garment-display">
-                        <img src="assets/garments/tshirt.png" alt="Футболка" id="garment-image">
+                        <img src="" alt="" id="garment-image" style="transition: opacity 0.3s ease;">
                         <div class="pe-workspace__garment-overlay" id="garment-overlay"></div>
                     </div>
+
+                    <!-- Переключатель сторон -->
+                    <div class="pe-side-toggle" id="side-toggle-container"
+                        style="position:absolute; bottom:24px; left:50%; transform:translateX(-50%); display:none; gap:4px; background:rgba(0,0,0,0.6); backdrop-filter:blur(12px); padding:4px; border-radius:14px; z-index:100; border:1px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                        <button class="pe-btn pe-btn--sm pe-btn--active" id="btn-side-front"
+                            style="border-radius:10px; min-width:90px; height:34px;">Спереди</button>
+                        <button class="pe-btn pe-btn--sm" id="btn-side-back"
+                            style="border-radius:10px; min-width:90px; height:34px;">Сзади</button>
+                    </div>
+
+                    <!-- Индикатор цены -->
+                    <div class="pe-price-tag" id="price-tag-container"
+                        style="position:absolute; top:24px; right:24px; background:var(--color-bg-panel); padding:12px 20px; border-radius:16px; border:1px solid var(--color-border); box-shadow:var(--shadow-xl); z-index:100; display:none; flex-direction:column; gap:2px; min-width:140px;">
+                        <span
+                            style="font-size:10px; color:var(--color-text-secondary); text-transform:uppercase; font-weight:700; letter-spacing:0.08em;">Итоговая
+                            цена</span>
+                        <span id="current-price-display"
+                            style="font-size:24px; font-weight:800; color:var(--color-primary); line-height:1.2;">0
+                            ֏</span>
+                    </div>
+
                     <div class="pe-workspace__canvas-wrap" id="canvas-wrap">
                         <canvas id="fabric-canvas"></canvas>
                     </div>
@@ -582,7 +615,16 @@
                 style="padding:16px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
                 <button class="pe-btn pe-btn--danger pe-btn--sm" id="btn-clear-cart"
                     style="display:none;">Очистить</button>
-                <button class="pe-btn pe-btn--success" id="btn-checkout">Оформить заказ</button>
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <div style="text-align:right;">
+                        <div
+                            style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">
+                            Итого:</div>
+                        <div style="font-size:20px; font-weight:800; color:var(--color-primary);" id="cart-total-price">
+                            0 ֏</div>
+                    </div>
+                    <button class="pe-btn pe-btn--success" id="btn-checkout" disabled>Оформить заказ</button>
+                </div>
             </div>
         </div>
     </div>
@@ -625,6 +667,62 @@
     <script src="js/tools.js"></script>
     <script src="js/export.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Модальное окно: Выбор стороны печати -->
+    <div class="pe-modal-overlay" id="side-selection-modal" style="display:none; z-index: 1000;">
+        <div class="pe-modal"
+            style="max-width:550px; width:95%; background: var(--color-bg-panel); color: var(--color-text);">
+            <div class="pe-modal__header" style="border-bottom: 1px solid var(--color-border);">
+                <h3 style="margin:0; font-weight:700;">Выберите область печати</h3>
+                <button class="pe-modal__close" onclick="GarmentManager.closeVariantModal()">&times;</button>
+            </div>
+            <div class="pe-modal__body" style="padding: 24px;">
+                <p style="margin-bottom: 20px; color: var(--color-text-secondary); text-align: center;">С какой стороны
+                    вы хотите добавить свой дизайн?</p>
+                <div class="variant-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                    <!-- Front -->
+                    <div class="variant-option" onclick="GarmentManager.setVariant('front')"
+                        style="cursor:pointer; background: var(--color-bg-lighter); border: 2px solid var(--color-border); border-radius: 16px; padding: 20px; text-align: center; transition: all 0.2s ease;">
+                        <i class="ri-survey-line"
+                            style="font-size: 32px; color: var(--color-primary); display:block; margin-bottom:12px;"></i>
+                        <span style="font-weight: 700; display:block; margin-bottom:6px;">Только перед</span>
+                        <span style="font-size: 13px; color: var(--color-text-secondary);"
+                            id="variant-price-front">---</span>
+                    </div>
+                    <!-- Back -->
+                    <div class="variant-option" id="variant-option-back" onclick="GarmentManager.setVariant('back')"
+                        style="cursor:pointer; background: var(--color-bg-lighter); border: 2px solid var(--color-border); border-radius: 16px; padding: 20px; text-align: center; transition: all 0.2s ease;">
+                        <i class="ri-survey-line"
+                            style="font-size: 32px; color: var(--color-primary); display:block; margin-bottom:12px; transform: scaleX(-1);"></i>
+                        <span style="font-weight: 700; display:block; margin-bottom:6px;">Только зад</span>
+                        <span style="font-size: 13px; color: var(--color-text-secondary);"
+                            id="variant-price-back">---</span>
+                    </div>
+                    <!-- Both -->
+                    <div class="variant-option" id="variant-option-both" onclick="GarmentManager.setVariant('both')"
+                        style="cursor:pointer; background: var(--color-bg-lighter); border: 2px solid var(--color-border); border-radius: 16px; padding: 20px; text-align: center; transition: all 0.2s ease;">
+                        <div style="display:flex; justify-content:center; gap:4px; margin-bottom:12px;">
+                            <i class="ri-survey-line" style="font-size: 24px; color: var(--color-primary);"></i>
+                            <i class="ri-survey-line"
+                                style="font-size: 24px; color: var(--color-primary); transform: scaleX(-1);"></i>
+                        </div>
+                        <span style="font-weight: 700; display:block; margin-bottom:6px;">Обе стороны</span>
+                        <span style="font-size: 13px; color: var(--color-text-secondary);"
+                            id="variant-price-both">---</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .variant-option:hover {
+            border-color: var(--color-primary) !important;
+            transform: translateY(-4px);
+            background: rgba(108, 92, 231, 0.05) !important;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 
 </body>
 

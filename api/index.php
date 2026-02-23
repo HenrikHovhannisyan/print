@@ -80,6 +80,7 @@ $router->get('/admin/garments', [$garment, 'listAll']);
 $router->get('/admin/garments/{id}', [$garment, 'get']);
 $router->post('/admin/garments', [$garment, 'create']);
 $router->put('/admin/garments/{id}', [$garment, 'update']);
+$router->post('/admin/garments/{id}', [$garment, 'update']); // Поддержка POST для обновлений с картинками
 $router->delete('/admin/garments/{id}', [$garment, 'delete']);
 $router->post('/admin/garments/{id}/image', [$garment, 'uploadImage']);
 

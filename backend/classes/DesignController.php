@@ -47,9 +47,14 @@ class DesignController
         $garmentType = $input['garment_type'] ?? 'tshirt';
         $garmentColor = $input['garment_color'] ?? '#ffffff';
         $canvasJson = $input['canvas_json'] ?? null;
+        $canvasJsonBack = $input['canvas_json_back'] ?? null;
         $svgData = $input['svg_data'] ?? null;
+        $svgDataBack = $input['svg_data_back'] ?? null;
         $highresData = $input['highres_data'] ?? null;
+        $highresDataBack = $input['highres_data_back'] ?? null;
         $previewData = $input['preview_data'] ?? null;
+        $previewDataBack = $input['preview_data_back'] ?? null;
+        $isDoubleSided = (int)($input['is_double_sided'] ?? 0);
         $printArea = $input['print_area'] ?? null;
         $title = $input['title'] ?? '';
         $designId = $input['design_id'] ?? null;
@@ -57,42 +62,26 @@ class DesignController
         try {
             $this->db->beginTransaction();
 
-            // Генерируем уникальное имя для файлов
             $filePrefix = date('Ymd_His') . '_' . bin2hex(random_bytes(4));
 
-            // Сохраняем Canvas JSON как файл
-            $canvasFile = null;
-            if ($canvasJson) {
-                $jsonStr = is_string($canvasJson) ? $canvasJson : json_encode($canvasJson, JSON_UNESCAPED_UNICODE);
-                $canvasFile = $this->fileManager->saveText($jsonStr, 'designs', 'json', $filePrefix . '_canvas');
-            }
+            // Сохраняем перед
+            $previewFile = $previewData ? $this->fileManager->saveDataUrl($previewData, 'mockups', $filePrefix . '_mockup') : null;
+            $highresFile = $highresData ? $this->fileManager->saveDataUrl($highresData, 'highres', $filePrefix . '_highres') : null;
 
-            // Сохраняем SVG
-            $svgFile = null;
-            if ($svgData) {
-                $svgFile = $this->fileManager->saveText($svgData, 'designs', 'svg', $filePrefix . '_design');
-            }
+            // Сохраняем зад
+            $previewBackFile = $previewDataBack ? $this->fileManager->saveDataUrl($previewDataBack, 'mockups', $filePrefix . '_mockup_back') : null;
+            $highresBackFile = $highresDataBack ? $this->fileManager->saveDataUrl($highresDataBack, 'highres', $filePrefix . '_highres_back') : null;
 
-            // Сохраняем high-res PNG
-            $highresFile = null;
-            if ($highresData) {
-                $highresFile = $this->fileManager->saveDataUrl($highresData, 'highres', $filePrefix . '_highres');
-            }
-
-            // Сохраняем превью мокапа
-            $previewFile = null;
-            if ($previewData) {
-                $previewFile = $this->fileManager->saveDataUrl($previewData, 'mockups', $filePrefix . '_mockup');
-            }
 
             $printAreaJson = $printArea ? json_encode($printArea) : null;
             $canvasJsonStr = $canvasJson ? (is_string($canvasJson) ? $canvasJson : json_encode($canvasJson)) : null;
+            $canvasJsonBackStr = $canvasJsonBack ? (is_string($canvasJsonBack) ? $canvasJsonBack : json_encode($canvasJsonBack)) : null;
 
             if ($designId) {
                 // Обновление существующего дизайна
                 $existing = $this->db->fetchOne(
                     "SELECT * FROM designs WHERE id = ? AND session_id = ?",
-                    [$designId, $sessionId]
+                [$designId, $sessionId]
                 );
 
                 if (!$existing) {
@@ -104,16 +93,26 @@ class DesignController
                 $updateFields = [
                     'garment_type' => $garmentType,
                     'garment_color' => $garmentColor,
-                    'canvas_json' => $canvasJsonStr,
+                    'is_double_sided' => $isDoubleSided,
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
+                if ($canvasJsonStr)
+                    $updateFields['canvas_json'] = $canvasJsonStr;
+                if ($canvasJsonBackStr)
+                    $updateFields['canvas_json_back'] = $canvasJsonBackStr;
                 if ($svgData)
                     $updateFields['svg_data'] = $svgData;
+                if ($svgDataBack)
+                    $updateFields['svg_data_back'] = $svgDataBack;
                 if ($previewFile)
                     $updateFields['preview_path'] = $previewFile['path'];
+                if ($previewBackFile)
+                    $updateFields['preview_back_path'] = $previewBackFile['path'];
                 if ($highresFile)
                     $updateFields['highres_path'] = $highresFile['path'];
+                if ($highresBackFile)
+                    $updateFields['highres_back_path'] = $highresBackFile['path'];
                 if ($printAreaJson)
                     $updateFields['print_area_json'] = $printAreaJson;
                 if ($title)
@@ -131,24 +130,25 @@ class DesignController
                     "UPDATE designs SET " . implode(', ', $setClauses) . " WHERE id = ?",
                     $values
                 );
-            } else {
+            }
+            else {
                 // Создание нового дизайна
-                $designId = $this->db->insert(
-                    "INSERT INTO designs (session_id, garment_type, garment_color, canvas_json, svg_data, 
-                     preview_path, highres_path, print_area_json, title)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    [
-                        $sessionId,
-                        $garmentType,
-                        $garmentColor,
-                        $canvasJsonStr,
-                        $svgData,
-                        $previewFile ? $previewFile['path'] : null,
-                        $highresFile ? $highresFile['path'] : null,
-                        $printAreaJson,
-                        $title,
-                    ]
+                $this->db->execute(
+                    "INSERT INTO designs (session_id, garment_type, garment_color, title, is_double_sided,
+                     canvas_json, canvas_json_back, svg_data, svg_data_back, 
+                     preview_path, preview_back_path, highres_path, highres_back_path, print_area_json)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    $sessionId, $garmentType, $garmentColor, $title, $isDoubleSided,
+                    $canvasJsonStr, $canvasJsonBackStr, $svgData, $svgDataBack,
+                    $previewFile ? $previewFile['path'] : null,
+                    $previewBackFile ? $previewBackFile['path'] : null,
+                    $highresFile ? $highresFile['path'] : null,
+                    $highresBackFile ? $highresBackFile['path'] : null,
+                    $printAreaJson
+                ]
                 );
+                $designId = $this->db->lastInsertId();
             }
 
             $this->db->commit();
@@ -157,17 +157,16 @@ class DesignController
             $design = $this->db->fetchOne("SELECT * FROM designs WHERE id = ?", [$designId]);
 
             Response::success([
-                'design_id' => (int) $designId,
+                'design_id' => (int)$designId,
                 'design' => $design,
                 'files' => [
-                    'canvas_json' => $canvasFile ? $canvasFile['path'] : null,
-                    'svg' => $svgFile ? $svgFile['path'] : null,
                     'highres' => $highresFile ? $highresFile['path'] : null,
                     'preview' => $previewFile ? $previewFile['path'] : null,
                 ],
             ], 'Дизайн сохранён');
 
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             $this->db->rollback();
             Response::error('Ошибка сохранения: ' . $e->getMessage(), 500);
         }
@@ -179,7 +178,7 @@ class DesignController
      */
     public function uploadAsset(array $params): void
     {
-        $designId = (int) ($params['id'] ?? 0);
+        $designId = (int)($params['id'] ?? 0);
 
         if (empty($_FILES['file'])) {
             Response::error('Файл не предоставлен', 400);
@@ -200,15 +199,15 @@ class DesignController
                 "INSERT INTO design_assets (design_id, original_filename, stored_filename, 
                  file_path, file_type, file_size, asset_type)
                  VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [
-                    $designId,
-                    $fileInfo['original_filename'],
-                    $fileInfo['filename'],
-                    $fileInfo['path'],
-                    $fileInfo['mime_type'],
-                    $fileInfo['size'],
-                    'image',
-                ]
+            [
+                $designId,
+                $fileInfo['original_filename'],
+                $fileInfo['filename'],
+                $fileInfo['path'],
+                $fileInfo['mime_type'],
+                $fileInfo['size'],
+                'image',
+            ]
             );
 
             Response::success([
@@ -216,7 +215,8 @@ class DesignController
                 'file' => $fileInfo,
             ], 'Файл загружен');
 
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             Response::error('Ошибка загрузки: ' . $e->getMessage(), 500);
         }
     }
@@ -227,7 +227,7 @@ class DesignController
      */
     public function get(array $params): void
     {
-        $designId = (int) ($params['id'] ?? 0);
+        $designId = (int)($params['id'] ?? 0);
 
         $design = $this->db->fetchOne("SELECT * FROM designs WHERE id = ?", [$designId]);
         if (!$design) {
@@ -238,7 +238,7 @@ class DesignController
         // Получаем связанные файлы
         $assets = $this->db->fetchAll(
             "SELECT * FROM design_assets WHERE design_id = ? ORDER BY created_at",
-            [$designId]
+        [$designId]
         );
 
         $design['assets'] = $assets;
@@ -262,7 +262,7 @@ class DesignController
         $designs = $this->db->fetchAll(
             "SELECT id, garment_type, garment_color, preview_path, title, canvas_json, created_at, updated_at 
              FROM designs WHERE session_id = ? ORDER BY updated_at DESC",
-            [$sessionId]
+        [$sessionId]
         );
 
         Response::success($designs);
@@ -274,12 +274,12 @@ class DesignController
      */
     public function delete(array $params): void
     {
-        $designId = (int) ($params['id'] ?? 0);
+        $designId = (int)($params['id'] ?? 0);
         $sessionId = $_GET['session_id'] ?? '';
 
         $design = $this->db->fetchOne(
             "SELECT * FROM designs WHERE id = ? AND session_id = ?",
-            [$designId, $sessionId]
+        [$designId, $sessionId]
         );
 
         if (!$design) {
@@ -295,7 +295,7 @@ class DesignController
 
         $assets = $this->db->fetchAll(
             "SELECT file_path FROM design_assets WHERE design_id = ?",
-            [$designId]
+        [$designId]
         );
         foreach ($assets as $asset) {
             $this->fileManager->deleteFile($asset['file_path']);
