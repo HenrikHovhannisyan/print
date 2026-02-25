@@ -1,0 +1,20 @@
+# PrintEditor — Git Ignore
+# Игнорируем временные файлы и данные
+
+# SQLite база данных
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+backend/database.sqlite
+
+# Загруженные файлы пользователей
+uploads/**/*
+!uploads/.gitignore
+!uploads/**/.gitkeep
+
+# Другое
+.DS_Store
+Thumbs.db
+node_modules/
+.env

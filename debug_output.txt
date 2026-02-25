@@ -1,8 +1,0 @@
-﻿ID | SLUG | NAME | PRICE1 | PRICE2 | BACK_PATH
----|------|------|--------|--------|----------
-1 | tshirt | ╨д╤Г╤В╨▒╨╛╨╗╨║╨░ | 1500 | 2500 | assets/garments/tshirt.png
-2 | hoodie | ╨е╤Г╨┤╨╕ | 3500 | 4500 | assets/garments/hoodie.png
-3 | sweatshirt | ╨б╨▓╨╕╤В╤И╨╛╤В | 3000 | 4000 | assets/garments/sweatshirt.png
-4 | polo | ╨Я╨╛╨╗╨╛ | 2000 | 3000 | assets/garments/polo.png
-5 | tank | ╨Ь╨░╨╣╨║╨░ | 1200 | 2000 | assets/garments/tank.png
-7 | tester | test | 1500 | 2500 | NULL
